@@ -21,3 +21,6 @@ create_symlinks() {
 }
 
 create_symlinks
+
+# Claude agent setup (CLAUDE.md, skills, ws helper)
+bash "$(dirname "$(readlink -f "$0")")/agent/install.sh"

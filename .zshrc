@@ -9,3 +9,4 @@ source $HOME/.aliases
 
 # Ona secrets
 [ -f /etc/profile.d/ona-secrets.sh ] && . /etc/profile.d/ona-secrets.sh
+[ -f "$HOME/.agent-setup/shell/agents.sh" ] && . "$HOME/.agent-setup/shell/agents.sh"
