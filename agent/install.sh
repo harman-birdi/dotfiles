@@ -6,6 +6,12 @@
 # - On your Mac: clone it anywhere and run ./install.sh once.
 set -euo pipefail
 
+# Ona only: the Claude app's per-box helper folder must exist on local disk before the app
+# connects (see step 6). Created first so nothing later in this script can skip it.
+if [ "${IS_ON_ONA:-}" = "true" ] || [ -d /workspaces ] || [ -f /etc/profile.d/ona-secrets.sh ]; then
+  mkdir -p "$HOME/.claude-remote-local" && chmod 700 "$HOME/.claude-remote-local"
+fi
+
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STABLE="$HOME/.agent-setup"          # stable path that skills and docs refer to
 CLAUDE_DIR="$HOME/.claude"
