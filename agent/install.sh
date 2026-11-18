@@ -88,4 +88,24 @@ else
   log "python3 not found; skipped SessionStart hook setup"
 fi
 
+# 6. Keep the Claude app's per-box helper state OFF the shared EFS home.
+#    ~/.claude is shared across all boxes (EFS/NFS), but ~/.claude/remote holds the desktop
+#    app's helper server, run tokens and session list for ONE box. Sharing it made new boxes
+#    fail with "Couldn't start Claude Code ... couldn't save its list of session folders".
+#    Fix: ~/.claude/remote → a local folder on each box (same path everywhere, local disk).
+if [ "${IS_ON_ONA:-}" = "true" ]; then
+  LOCAL_REMOTE="$HOME/.claude-remote-local"
+  mkdir -p "$LOCAL_REMOTE" && chmod 700 "$LOCAL_REMOTE"
+  if [ -L "$CLAUDE_DIR" ] || [ "$(readlink -f "$CLAUDE_DIR")" != "$CLAUDE_DIR" ]; then
+    if [ "$(readlink "$CLAUDE_DIR/remote" 2>/dev/null)" != "$LOCAL_REMOTE" ]; then
+      if [ -e "$CLAUDE_DIR/remote" ] || [ -L "$CLAUDE_DIR/remote" ]; then
+        mv "$CLAUDE_DIR/remote" "$CLAUDE_DIR/remote.shared-bak-$(date +%Y%m%d%H%M%S)"
+        log "moved shared ~/.claude/remote aside (backup kept next to it)"
+      fi
+      ln -s "$LOCAL_REMOTE" "$CLAUDE_DIR/remote"
+      log "linked ~/.claude/remote → $LOCAL_REMOTE (per-box, not shared)"
+    fi
+  fi
+fi
+
 log "done. Start a new Claude session to pick up changes."
