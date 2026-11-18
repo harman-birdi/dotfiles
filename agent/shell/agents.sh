@@ -12,12 +12,18 @@ export OO_BRANCH_PREFIX="${OO_BRANCH_PREFIX:-harman/}"
 #   ws new integ-okta     → create env named integ-okta and open it in Claude desktop (Code tab)
 #   ws open integ-okta    → reopen a Claude session on an existing env (starts it if stopped)
 #   ws                    → list environments with status / PR / unpushed work
-# Before the Claude app connects, make sure the box has its per-box app folder on local disk.
-# ~/.claude/remote links there (off the shared EFS home); if it's missing, the app fails with
-# "Couldn't start Claude Code". Doing it from the Mac works no matter when dotfiles ran.
+# Before the Claude app connects, wait for the box to finish its startup.
+# On a new box, dotfiles run first and ~1 minute later ~/.claude is swapped over to the shared
+# EFS home. If the app connects inside that minute, its files vanish mid-connect and it fails
+# with "Couldn't start Claude Code ... ~/.claude/remote". So: wait (up to ~3 min) until ~/.claude
+# is the EFS link, then make sure the per-box app folder exists on local disk.
 _ws_prep() {
-  oo c "$1" -- 'mkdir -p ~/.claude-remote-local && chmod 700 ~/.claude-remote-local' >/dev/null 2>&1 \
-    || echo "[ws] could not prepare $1; if Claude fails to start, run: oo c $1 -- mkdir -p ~/.claude-remote-local"
+  echo "[ws] waiting for $1 to finish setup (shared home + Claude app folder)…"
+  oo c "$1" -- 'for i in $(seq 1 60); do [ -L ~/.claude ] && break; sleep 3; done
+mkdir -p ~/.claude-remote-local && chmod 700 ~/.claude-remote-local
+if [ -L ~/.claude ]; then echo READY; else echo NO_EFS_LINK; fi' 2>/dev/null | grep -qx READY \
+    && echo "[ws] $1 is ready." \
+    || echo "[ws] $1 did not finish setup in time. If Claude fails to start, wait a minute and run: ws open $1"
 }
 
 ws() {
