@@ -93,7 +93,7 @@ fi
 #    app's helper server, run tokens and session list for ONE box. Sharing it made new boxes
 #    fail with "Couldn't start Claude Code ... couldn't save its list of session folders".
 #    Fix: ~/.claude/remote → a local folder on each box (same path everywhere, local disk).
-if [ "${IS_ON_ONA:-}" = "true" ]; then
+if [ "${IS_ON_ONA:-}" = "true" ] || [ -d /workspaces ] || [ -f /etc/profile.d/ona-secrets.sh ]; then
   LOCAL_REMOTE="$HOME/.claude-remote-local"
   mkdir -p "$LOCAL_REMOTE" && chmod 700 "$LOCAL_REMOTE"
   if [ -L "$CLAUDE_DIR" ] || [ "$(readlink -f "$CLAUDE_DIR")" != "$CLAUDE_DIR" ]; then

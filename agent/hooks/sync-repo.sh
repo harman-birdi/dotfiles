@@ -17,7 +17,8 @@
 set -uo pipefail
 
 [ -n "${AGENT_SYNC_DISABLE:-}" ] && exit 0
-[ "${IS_ON_ONA:-}" = "true" ] || [ -n "${AGENT_SYNC_FORCE:-}" ] || exit 0
+[ "${IS_ON_ONA:-}" = "true" ] || [ -d /workspaces ] || [ -f /etc/profile.d/ona-secrets.sh ] \
+  || [ -n "${AGENT_SYNC_FORCE:-}" ] || exit 0
 repo="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 cd "$repo" || exit 0
 
