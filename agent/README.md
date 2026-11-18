@@ -50,7 +50,7 @@ Check that `OO_BRANCH_PREFIX` in `shell/agents.sh` matches your branch names.
 
 ### 4. First Ona box (once; EFS keeps it after that)
 ```sh
-ws new setup-check          # creates an env and opens Claude desktop on it
+ws new setup-check          # creates an env, waits for setup, opens Claude desktop on it
 ```
 In that session, run once:
 1. `claude auth login` (if prompted)
@@ -101,6 +101,35 @@ tool), proposes a diff to this repo, and logs it in `LEARNINGS.md`. Then push, a
 `agent-setup-update` on other boxes, or just create new ones.
 
 ---
+
+## What happens automatically on a new box
+
+`ws new <name>` (always use it; plain `oo new -t claude` skips step 4):
+
+1. Ona creates the box and runs these dotfiles: rules, skills, `ws`, the repo-sync hook.
+2. About a minute later the box links `~/.claude` to the shared EFS home (logins, history).
+   `~/.claude/remote` (the Claude app's per-box helper) links to local disk instead, so
+   boxes can't break each other.
+3. `ws` waits for step 2 to finish, then opens Claude in the desktop app.
+4. The repo-sync hook updates `main`, brings it into your branch, and starts `just post-pull`.
+
+## Switching between workstreams
+
+- One box per workstream: `ws new <name>` once, then `ws open <name>` or click the session in
+  Claude desktop's sidebar.
+- Several sessions can share one box (for example, build in one and review in another), but
+  they share one working copy. Don't run two branches on the same box at the same time.
+- `ws` shows every box with its PR state. Run `ws stop --all` at the end of the day.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| "Couldn't find `<id>.ona.environment`" | Ona SSH config not written on the Mac | `ona environment ssh-config` |
+| "Couldn't start Claude Code on `<id>.claude.oo`" | App connected before the box finished setup, or `~/.claude-remote-local` is missing | `ws open <name>` (it waits and repairs); log: `~/Library/Logs/Claude/ssh.log` |
+| No `[repo-sync]` lines at session start | Hook not registered | On the box: `cat ~/.claude/settings.json`; rerun `agent-setup-update` |
+| Logged out on a new box | Box is in a different region from your EFS home | Use your usual region (`OO_CLASS` in `shell/agents.sh`) |
+| Skill or rule change not showing | Not pushed, or old box | Push, then `agent-setup-update` on the box |
 
 ## Pace (from the Automation AI-first doc)
 Get **one** session through the full loop (spec → PR → review → rollout) before you run several
