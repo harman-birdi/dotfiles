@@ -14,7 +14,9 @@ unless I say the team should see it.
 
 ## When you start a new project
 
-1. Copy `~/.agent-setup/templates/PROJECT.md` to the repo root.
+1. Check the `[repo-sync]` lines: `main` should be current and `just post-pull` running or done.
+   Create the branch from the fresh `main`: `git switch -c harman/<ticket>-<short-name> origin/main`.
+   Then copy `~/.agent-setup/templates/PROJECT.md` to the repo root.
 2. Interview me briefly to fill in: Goal, Links, Acceptance criteria, Verifiers, Constraints.
    Give a proposal for each one, so that "go with that" is a complete answer.
 3. Propose a plan as a short ordered list of PR-sized steps. Each step names the verifier that
@@ -23,9 +25,13 @@ unless I say the team should see it.
 
 ## When you resume (every new session on this branch)
 
-1. Read `PROJECT.md` first, then `git log --oneline -15` and `git status`.
-2. Give me a 3-line status: what is done, what is next, and what is blocked.
-3. Continue from "Next".
+1. Read the `[repo-sync]` lines at the start of the session. A hook has already fetched,
+   updated `main`, and brought `main` into this branch (or told you why it could not).
+   If it reports conflicts or a skipped sync, tell me before you do anything else.
+   If it started `just post-pull`, wait for `EXIT=0` in its log before builds or tests.
+2. Read `PROJECT.md`, then `git log --oneline -15` and `git status`.
+3. Give me a 3-line status: what is done, what is next, and what is blocked.
+4. Continue from "Next".
 
 ## While you work
 

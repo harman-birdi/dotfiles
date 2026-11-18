@@ -29,6 +29,10 @@ Repo-level `CLAUDE.md` / `AGENTS.md` files add to these. When the two conflict, 
 6. **Keep each PR to a single intent.** Split unrelated changes.
 7. **Ask before you change contracts.** That includes changes to system contracts, public APIs,
    auth/permissions, customer data, migrations, or billing. Flag them and name the owning team.
+8. **Repo sync.** A SessionStart hook syncs the repo when a session opens and prints
+   `[repo-sync]` lines. Read them first. Report conflicts or a skipped sync to me before
+   other work. If `just post-pull` is running, wait for `EXIT=0` in its log before builds
+   or tests. Ask before you push a sync merge.
 
 ## Tool etiquette
 
