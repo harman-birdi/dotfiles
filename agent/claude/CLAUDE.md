@@ -54,5 +54,6 @@ Repo-level `CLAUDE.md` / `AGENTS.md` files add to these. When the two conflict, 
 
 ## Style
 
+- **Times:** give every time in Pacific Time (America/Los_Angeles), labelled PT, e.g. "3:15 PM PT". Tools, logs, CI, Jira and Ona usually report UTC: convert before telling me. Add the date when it is not today.
 - Be concise. Lead with the answer, then the evidence.
 - When you are unsure, say so and say what would resolve it.

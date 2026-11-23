@@ -26,11 +26,36 @@ if [ -L ~/.claude ]; then echo READY; else echo NO_EFS_LINK; fi' 2>/dev/null | g
     || echo "[ws] $1 did not finish setup in time. If Claude fails to start, wait a minute and run: ws open $1"
 }
 
+# End of day: stop every box and confirm they really stopped.
+# The Claude desktop app reconnects to its sessions when it is open, and connecting to a
+# stopped box starts it again, so the app must be quit first. `ws down --force` skips that check.
+_ws_down() {
+  if [ "${1:-}" != "--force" ] && pgrep -x Claude >/dev/null 2>&1; then
+    echo "[ws] The Claude desktop app is open. Quit it first (Cmd+Q) so it can't wake the boxes,"
+    echo "     then run: ws down     (or: ws down --force to stop anyway)"
+    return 1
+  fi
+  oo stop --all || return 1
+  echo "[ws] waiting for the boxes to stop…"
+  local i
+  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
+    sleep 15
+    if ! oo 2>/dev/null | grep -qE 'running|starting|stopping'; then
+      echo "[ws] all boxes are stopped. Good night."
+      return 0
+    fi
+  done
+  echo "[ws] some boxes are still not stopped after 4 minutes:"
+  oo
+  return 1
+}
+
 ws() {
   case "${1:-}" in
     new)  shift; oo new -n "$1" -t none && _ws_prep "$1" && oo claude "$1" --label "$1" ;;
     open) shift; _ws_prep "$1"; oo claude "$1" --label "$1" ;;
     stop) shift; oo stop "$@" ;;
+    down) shift; _ws_down "$@" ;;
     "")   oo ;;
     *)    oo "$@" ;;
   esac
