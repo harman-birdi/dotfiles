@@ -10,6 +10,18 @@ claude/skills/feasibility/       draft an FDE Feasibility Evaluation in the temp
 claude/skills/integrations/      connector work in obsidian: platform, precedent, verifiers
 claude/skills/project/           PROJECT.md = durable memory for a branch/workstream
 claude/skills/tune-agent/        "fix the input, not the output": route a fix to the right layer
+claude/skills/plan-ticket/       Jira key → research → 3-5 questions → PLAN.md with diagrams
+  references/vanta-layers.md     running map of Vanta's codebase as layers (update it over time)
+  references/plan-template.md    the fixed plan sections
+  references/diagram-cookbook.md which diagram answers which question, with examples
+  scripts/check-plan.py          verifier: sections, placeholders, diagrams render (--render)
+claude/agents/plan-reviewer.md   Sonnet subagent, no context, reviews a plan in the same session
+claude/output-styles/fde.md      reply format for every session (answer first, labels, TL;DR)
+plugins.txt                      team plugins to enable on every box (fde, …)
+bin/enable-plugins.sh            enables plugins.txt at user scope (run by install.sh on Ona)
+bin/skills-catalog.py            lists every skill/plugin/subagent (behind `ws skills <box>`)
+bin/plan-html.py                 renders a plan as a page (behind `ws plan <box> [KEY]`)
+examples/FDE-842.md              example plan made with plan-ticket
 templates/PROJECT.md             template the project skill copies
 shell/agents.sh                  oo defaults + `ws` helper
 install.sh                       links everything into ~/.claude (safe to re-run)
@@ -56,7 +68,7 @@ In that session, run once:
 1. `claude auth login` (if prompted)
 2. Say "do the Glean MCP auth" and follow the link.
 3. `npx gsync auth login` (run it from an editor terminal)
-4. `just enable-claude-plugin fde` (gives you `/fde:intake`)
+4. (automatic now) the `fde` plugin is enabled by install.sh from `plugins.txt`
 5. `acli jira auth status`
 
 Then open a **second** env and confirm that you are still logged in. If you are, EFS works.
@@ -89,6 +101,24 @@ ws open <project>           # every time after
 First session: "start a project". The skill interviews you and writes `PROJECT.md`.
 Later sessions: "resume". The agent reads `PROJECT.md` and gives a 3-line status.
 
+### Plan a ticket
+```sh
+ws new fde-842               # or ws open <box>
+```
+In the session: `/plan-ticket FDE-842`. The agent researches, asks 3-5 questions, writes
+`~/.claude/fde-plans/FDE-842.md`, checks it, has the `plan-reviewer` subagent review it, and
+replies with the TL;DR. Read it on your Mac:
+```sh
+ws plan fde-842 FDE-842      # opens the plan as a page with diagrams (any running box works)
+ws plan fde-842 --list       # all plans
+```
+
+### What skills do I have?
+```sh
+ws skills fde-842            # page with every skill, plugin and subagent on that box, searchable
+```
+To turn on another team plugin everywhere: add its name to `plugins.txt`, push, then `ws open <box>`.
+
 ### Seeing everything
 ```sh
 ws                          # all envs: running/stopped, PR state, unpushed work
@@ -110,7 +140,9 @@ tool), proposes a diff to this repo, and logs it in `LEARNINGS.md`. Then push, a
 2. About a minute later the box links `~/.claude` to the shared EFS home (logins, history).
    `~/.claude/remote` (the Claude app's per-box helper) links to local disk instead, so
    boxes can't break each other.
-3. `ws` waits for step 2 to finish, then opens Claude in the desktop app.
+3. `ws` waits for step 2 to finish, pulls your latest dotfiles on the box (rules, skills, hooks,
+   subagents, output style), enables the team plugins in `plugins.txt` (prints `[ws] plugin on: fde`),
+   then opens Claude in the desktop app. `ws open` does the same on an existing box.
 4. The repo-sync hook updates `main`, brings it into your branch, and starts `just post-pull`.
 
 ## Switching between workstreams

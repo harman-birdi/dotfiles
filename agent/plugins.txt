@@ -1,0 +1,4 @@
+# Claude Code plugins from the obsidian repo's marketplace (.claude-plugin/marketplace.json)
+# to enable on every Ona box. One name per line. `ws skills <box>` lists every plugin available.
+# install.sh enables these at user scope (~/.claude/settings.json, shared by all boxes).
+fde

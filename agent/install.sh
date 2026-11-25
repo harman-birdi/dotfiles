@@ -45,6 +45,24 @@ for skill in "$STABLE"/claude/skills/*/; do
   name="$(basename "$skill")"
   link "$STABLE/claude/skills/$name" "$CLAUDE_DIR/skills/$name"
 done
+# Subagents (e.g. plan-reviewer) and output styles (e.g. fde), one link per file.
+for kind in agents output-styles; do
+  [ -d "$STABLE/claude/$kind" ] || continue
+  mkdir -p "$CLAUDE_DIR/$kind"
+  for f in "$STABLE/claude/$kind"/*.md; do
+    [ -e "$f" ] && link "$f" "$CLAUDE_DIR/$kind/$(basename "$f")"
+  done
+done
+mkdir -p "$CLAUDE_DIR/fde-plans"   # plans from the plan-ticket skill; shared by every box on EFS
+# Subagents (e.g. plan-reviewer) and output styles (e.g. fde), one link per file.
+for kind in agents output-styles; do
+  [ -d "$STABLE/claude/$kind" ] || continue
+  mkdir -p "$CLAUDE_DIR/$kind"
+  for f in "$STABLE/claude/$kind"/*.md; do
+    [ -e "$f" ] && link "$f" "$CLAUDE_DIR/$kind/$(basename "$f")"
+  done
+done
+mkdir -p "$CLAUDE_DIR/fde-plans"   # plans from the plan-ticket skill; shared by every box on EFS
 
 # 3. Shell helpers (oo defaults, aliases)
 for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
@@ -112,6 +130,35 @@ if [ "${IS_ON_ONA:-}" = "true" ] || [ -d /workspaces ] || [ -f /etc/profile.d/on
       log "linked ~/.claude/remote → $LOCAL_REMOTE (per-box, not shared)"
     fi
   fi
+fi
+
+# 7. Team plugins (Ona only): enable everything in plugins.txt (fde, …) at user scope, so every
+#    box has them. `just enable-claude-plugin` alone writes the project settings of one checkout.
+if [ "${IS_ON_ONA:-}" = "true" ] || [ -d /workspaces ] || [ -f /etc/profile.d/ona-secrets.sh ]; then
+  bash "$STABLE/bin/enable-plugins.sh" | while read -r status name; do
+    case "$status" in
+      PLUGIN_OK) log "plugin on: $name" ;;
+      PLUGIN_MISSING) log "plugin '$name' is not in the repo marketplace (typo, or the checkout is stale)" ;;
+      PLUGIN_FAILED) log "could not enable plugin '$name'; try: cd /workspaces/obsidian && just enable-claude-plugin $name --user" ;;
+      PLUGIN_SKIPPED) log "skipped plugins: $name" ;;
+    esac
+  done
+fi
+
+# 8. Default reply format: the fde output style, unless you already picked one.
+if command -v python3 >/dev/null 2>&1 && [ -f "$CLAUDE_DIR/output-styles/fde.md" ]; then
+  python3 - "$SETTINGS" <<'PY' || true
+import json, os, sys
+path = sys.argv[1]
+data = json.load(open(path)) if os.path.exists(path) and open(path).read().strip() else {}
+if not data.get("outputStyle"):
+    data["outputStyle"] = "fde"
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=2); f.write("\n")
+    os.replace(tmp, path)
+    print("[agent-setup] set the default output style to fde")
+PY
 fi
 
 log "done. Start a new Claude session to pick up changes."
