@@ -70,7 +70,9 @@ deadlines, who reviews. Wait for the answers. "Your call" means use your proposa
    fixes you agree with and write its verdict plus what you changed in section 13.
 3. If you found a part of Vanta missing from the layers map, list it in section 12 and offer to
    update `references/vanta-layers.md` (it lives in Harman's dotfiles repo: `~/.agent-setup`).
-4. Reply in the fde style (see output style): the TL;DR, the size, the open questions that still
+4. If Harman wants the plan in Google Drive for review, use the `share-to-drive` skill (gsync).
+   Ask first; never upload on your own.
+5. Reply in the fde style (see output style): the TL;DR, the size, the open questions that still
    need Harman, and the command to view it: `ws plan <box> <KEY>`.
 
 ## Rules

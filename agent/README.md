@@ -15,6 +15,8 @@ claude/skills/plan-ticket/       Jira key → research → 3-5 questions → PLA
   references/plan-template.md    the fixed plan sections
   references/diagram-cookbook.md which diagram answers which question, with examples
   scripts/check-plan.py          verifier: sections, placeholders, diagrams render (--render)
+claude/skills/share-to-drive/    upload a plan or write-up to Google Docs with gsync, pull comments back
+bin/plan-for-drive.py            Drive copy of a plan: the interactive map becomes tables
 claude/agents/plan-reviewer.md   Sonnet subagent, no context, reviews a plan in the same session
 claude/output-styles/fde.md      reply format for every session (answer first, labels, TL;DR)
 plugins.txt                      team plugins to enable on every box (fde, …)
@@ -68,7 +70,7 @@ ws new setup-check          # creates an env, waits for setup, opens Claude desk
 In that session, run once:
 1. `claude auth login` (if prompted)
 2. Say "do the Glean MCP auth" and follow the link.
-3. `npx gsync auth login` (run it from an editor terminal)
+3. `npx gsync auth login` (run it from an editor terminal). Needed for `share-to-drive` and `fde:intake`.
 4. (automatic now) the `fde` plugin is enabled by install.sh from `plugins.txt`
 5. `acli jira auth status`
 
@@ -127,6 +129,12 @@ ws map                       # opens maps/vanta-system-map.html: every layer of 
 ```
 To update it, edit the data lists at the bottom of that file (or ask an agent to), and add a
 line to `maps/CHANGELOG.md`. Published copy: https://claude.ai/artifact/SAEHJBChQ1eMrbhWZtHQPo
+
+### Share a plan to Google Drive
+In the session: "share the FDE-842 plan to Drive, folder <name>". The `share-to-drive` skill makes
+a Drive copy (the interactive map becomes tables), asks before uploading, and uploads with gsync.
+Later: "pull the comments on the FDE-842 doc" brings reviewers' comments back into the plan.
+If gsync says you are not logged in: `npx gsync auth login` from an editor terminal on that box.
 
 ### What skills do I have?
 ```sh

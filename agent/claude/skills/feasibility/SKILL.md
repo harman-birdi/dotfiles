@@ -88,6 +88,7 @@ Sections, in order:
   into a copy of the template.
 - The ticket map: `~/.claude/fde-plans/<short-slug>-feasibility.md`. Tell me the command to view it
   as the layers map and flow map: `ws plan <box> <short-slug>-feasibility`.
+- To put the draft or the ticket map in Google Drive, use the `share-to-drive` skill (gsync). Ask first.
 - Finish with a short list: the sources you used (links/paths), the `<TODO!>` items for me, and
   the open questions for the PM or eng lead.
 

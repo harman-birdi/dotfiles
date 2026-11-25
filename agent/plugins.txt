@@ -2,3 +2,6 @@
 # to enable on every Ona box. One name per line. `ws skills <box>` lists every plugin available.
 # install.sh enables these at user scope (~/.claude/settings.json, shared by all boxes).
 fde
+# gsync's plugin: pulls Google Doc comments back into a markdown file (used by share-to-drive).
+# If `ws` reports it is not in the marketplace, find its real name with `ws skills <box>`.
+gsync
