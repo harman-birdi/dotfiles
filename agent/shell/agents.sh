@@ -14,6 +14,7 @@ export OO_BRANCH_PREFIX="${OO_BRANCH_PREFIX:-harman/}"
 #   ws                    → list environments with status / PR / unpushed work
 #   ws skills integ-okta  → page listing every skill, plugin and subagent on that box
 #   ws plan integ-okta FDE-842 → open that plan (from the plan-ticket skill) as a page
+#   ws map                → open the Vanta system map (maps/vanta-system-map.html in this repo)
 # Before the Claude app connects, get the box ready:
 #  1. Wait for its startup. On a new box, ~/.claude is swapped over to the shared EFS home about a
 #     minute after boot; if the app connects inside that minute it fails with "Couldn't start
@@ -108,6 +109,7 @@ ws() {
     down) shift; _ws_down "$@" ;;
     skills) shift; _ws_skills "$@" ;;
     plan) shift; _ws_plan "$@" ;;
+    map) open "$HOME/.agent-setup/maps/vanta-system-map.html" 2>/dev/null || echo "[ws] map not found; run agent-setup-update" ;;
     "")   oo ;;
     *)    oo "$@" ;;
   esac

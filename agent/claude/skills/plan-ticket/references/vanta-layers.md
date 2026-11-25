@@ -1,4 +1,4 @@
-# Vanta layers map (v0.1, 2026-11-25)
+# Vanta layers map (v0.2, 2026-11-25)
 
 A running map of obsidian (Vanta's monorepo) as layers, top = what customers touch, bottom = where
 it runs. Every plan copies the diagram below and marks the parts the work touches with
@@ -112,20 +112,37 @@ flowchart TB
 | 7 Data | `mongo` `v2db` `queues` `s3` |
 | 8 Infra | `tf` `cf` `ci` |
 
-## How a plan uses it (Harman's preferred diagram)
+## How a plan uses it (Harman's two preferred diagrams)
 
-Plans show this map as an **interactive layers map**: click a ticket and the parts it changes
-light up; click a part and the tickets that touch it are listed. The plan carries the data in a
-fenced `layersmap` block; `ws plan` draws it. The Mermaid picture above is only the static overview.
+Harman's preferred diagrams (chosen 2026-11-25) are two views of the same data:
 
-1. Copy the base JSON below into the plan's section 6 inside a ```` ```layersmap ```` fence.
-2. Add `"focus": "<KEY>"` and a `"tickets"` list: this ticket plus the other tickets in its epic.
-   Each ticket: `{"key", "title", "status": "done" | "prog" | "back", "hit": [part ids it changes],
+- **Layers map**: the parts of Vanta stacked in layers. Answers "what does each ticket touch?"
+- **Flow map**: the same parts left to right with arrows. Answers "how does data move, and what
+  is downstream of a change?"
+
+Click a ticket in either view and the parts it changes light up orange, the parts it reads light
+up yellow. Click a part to list its tickets and light everything downstream. A plan or feasibility
+carries both as one fenced `layersmap` block; `ws plan` draws it with a Layers / Flow switch.
+The Mermaid picture above is only the static overview.
+
+1. Copy the base JSON below into a ```` ```layersmap ```` fence (section 6 of a plan).
+2. Add `"focus": "<KEY>"` and a `"tickets"` list: this ticket plus the other tickets in its epic
+   (for a feasibility: the proposed tickets, keys `T1`, `T2`…). Each ticket:
+   `{"key", "title", "status": "done" | "prog" | "back", "hit": [part ids it changes],
    "near": [part ids it reads or depends on], "notes": ["one line each, max 3"]}`.
-3. Rename a part's `label`/`path` to the specific thing when it helps (`"Device42 handlers"`).
+   A ticket that changes no code (a spike, a sandbox check) sets `"nocode": true`.
+3. `"edges"` are `[from, to]` or `[from, to, "label"]` pairs: data or calls flowing from one part
+   to the next. Keep the base edges between parts you keep; add the ones this work introduces.
+   No cycles: the flow map lays parts out left to right by these arrows.
+4. Rename a part's `label`/`path` to the specific thing when it helps (`"Device42 integration"`).
    Drop layers nothing in the epic touches, so the map stays small.
-4. A part you need that isn't here: add it with `"new": true` (drawn dashed) and list it in the
+5. A part you need that isn't here: add it with `"new": true` (drawn dashed) and list it in the
    plan's "Map updates" so this file gets fixed.
+
+**Tickets and the diagram go hand in hand.** The map is part of the solution, not decoration:
+every ticket is on the map and every changed part has a ticket. `check-plan.py` enforces this
+(see "Validated" in the plan-ticket skill). When a ticket is added, split or re-scoped, update
+the map in the same edit.
 
 ```json
 {
@@ -177,11 +194,20 @@ fenced `layersmap` block; `ws plan` draws it. The Mermaid picture above is only 
       {"id": "cf", "label": "Cloudflare", "path": "web assets"},
       {"id": "ci", "label": "CI", "path": "Buildkite / GitHub"}
     ]}
+  ],
+  "edges": [
+    ["webclient", "web"], ["pubapi", "web"], ["web", "mongo"], ["agentapp", "osq"],
+    ["osq", "mongo"], ["sched", "rfv1"], ["sched", "cdc"], ["intbuilder", "cdc"],
+    ["plugin", "cdc"], ["mocks", "cdc"], ["rfv1", "mongo"], ["rfv1", "queues"],
+    ["cdc", "v2db"], ["cdc", "conv"], ["conv", "mongo"], ["conv", "queues"],
+    ["queues", "postfetch"], ["postfetch", "tests"], ["postfetch", "vulns"], ["mongo", "oplog"],
+    ["oplog", "tests"]
   ]
 }
 ```
 
 ## Changelog
 
+- 2026-11-25 v0.2: base `edges` for the flow map; ticket ↔ diagram rules.
 - 2026-11-25 v0.1: added `vulns`, `postfetch`, `intbuilder`; base JSON for the interactive map.
 - 2026-11-25 v0: first cut from Guru and v2 docs (Harman + Claude). Not yet checked against the code.

@@ -3,10 +3,11 @@
 
   python3 check-plan.py ~/.claude/fde-plans/FDE-842.md            # structure only
   python3 check-plan.py ~/.claude/fde-plans/FDE-842.md --render   # also render every diagram with mmdc
+  python3 check-plan.py <any file with a layersmap block> --map-only   # validate just the ticket ↔ diagram map
 
 Checks: required sections in order, TL;DR present, no leftover <placeholders>, UI work answered
-Yes/No, section 6 has a valid interactive layers map (`layersmap` block) whose focus ticket changes
-at least one part, criteria table has a verifier column, any mermaid block renders (--render).
+Yes/No, section 6 has a valid layers + flow map (`layersmap` block) in which tickets and diagram
+agree (every ticket on the map, arrows valid, tickets named in section 8 present), criteria table has a verifier column, any mermaid block renders (--render).
 """
 import json
 import os
@@ -41,7 +42,9 @@ def mermaid_blocks(text):
 
 
 def check_layersmap(src):
-    """The interactive layers map: valid JSON, known part ids, the focus ticket changes something."""
+    """The interactive layers + flow map. Tickets and the diagram must agree:
+    valid JSON, known part ids, every ticket on the map, every new part owned by a ticket,
+    arrows between known parts with no cycles, and the focus ticket changes something."""
     try:
         d = json.loads(src)
     except ValueError as e:
@@ -55,18 +58,59 @@ def check_layersmap(src):
     tickets = d.get("tickets") or []
     if not tickets:
         out.append("layersmap has no tickets")
+    touched = set()
     for t in tickets:
-        bad = [i for i in (t.get("hit", []) + t.get("near", [])) if i not in ids]
+        hit, near = t.get("hit", []), t.get("near", [])
+        touched.update(hit + near)
+        bad = [i for i in hit + near if i not in ids]
         if bad:
             out.append(f"layersmap ticket {t.get('key')} uses unknown part ids: {', '.join(bad)}")
         if t.get("status") not in ("done", "prog", "back"):
             out.append(f"layersmap ticket {t.get('key')}: status must be done, prog or back")
+        if not hit and not t.get("nocode"):
+            out.append(f"layersmap ticket {t.get('key')} changes no part: give it `hit` parts, or mark it \"nocode\": true (spike, sandbox check)")
+    for L in d.get("layers", []):
+        for p in L.get("parts", []):
+            if p.get("new") and p.get("id") not in touched:
+                out.append(f"layersmap new part `{p.get('id')}` is not used by any ticket")
     focus = next((t for t in tickets if t.get("key") == d.get("focus")), None)
     if not focus:
         out.append("layersmap `focus` must name one of its tickets")
-    elif not focus.get("hit"):
+    elif not focus.get("hit") and not focus.get("nocode"):
         out.append("layersmap focus ticket has no `hit` parts")
+    # flow map: arrows
+    edges = d.get("edges") or []
+    if not edges:
+        out.append("layersmap has no `edges`: the flow map needs arrows between parts")
+    graph = {}
+    for e in edges:
+        if not isinstance(e, list) or len(e) < 2 or e[0] not in ids or e[1] not in ids:
+            out.append(f"layersmap edge {e} must be [from, to] with known part ids")
+            continue
+        graph.setdefault(e[0], []).append(e[1])
+    state = {}
+
+    def cyclic(n):
+        state[n] = 1
+        for m in graph.get(n, []):
+            if state.get(m) == 1 or (state.get(m) is None and cyclic(m)):
+                return True
+        state[n] = 2
+        return False
+
+    if any(state.get(n) is None and cyclic(n) for n in list(graph)):
+        out.append("layersmap edges contain a cycle: the flow map needs arrows that only go forward")
+    if focus and focus.get("hit") and edges and not any(e[0] in focus["hit"] or e[1] in focus["hit"] for e in edges if isinstance(e, list) and len(e) > 1):
+        out.append("layersmap: no arrow touches the focus ticket's changed parts, so the flow map can't show it")
     return out
+
+
+def map_data(text):
+    m = re.search(r"```layersmap\n(.*?)```", text, re.S)
+    try:
+        return json.loads(m.group(1)) if m else None
+    except ValueError:
+        return None
 
 
 def render(blocks):
@@ -114,6 +158,19 @@ def check(path, do_render=False):
     lm = re.search(r"```layersmap\n(.*?)```", land, re.S)
     if lm:
         problems += check_layersmap(lm.group(1))
+        d = map_data(text) or {}
+        keys = {t.get("key") for t in d.get("tickets", [])}
+        prefix = (d.get("focus") or "").split("-")[0]
+        steps = secs.get("8. Steps (PR-sized)", "")
+        missing = sorted(set(re.findall(r"\b%s-\d+\b" % re.escape(prefix), steps)) - keys) if prefix else []
+        if missing:
+            problems.append("tickets named in ## 8 but not on the map: " + ", ".join(missing))
+        focus = next((t for t in d.get("tickets", []) if t.get("key") == d.get("focus")), {})
+        labels = {p["id"]: p.get("label", "") for L in d.get("layers", []) for p in L.get("parts", [])}
+        table = land[lm.end():]
+        untold = [i for i in focus.get("hit", []) if i not in table and labels.get(i, "\0") not in table]
+        if untold:
+            problems.append("## 6 table has no row for changed part(s): " + ", ".join(untold))
     elif "```mermaid" not in land or not re.search(r"^\s*class\s+[\w,]+\s+hit\s*$", land, re.M):
         problems.append("## 6 needs a `layersmap` block (see vanta-layers.md) with this ticket's `hit` parts")
     blocks = mermaid_blocks(text)
@@ -133,6 +190,13 @@ if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     if not args:
         sys.exit(__doc__)
+    if "--map-only" in sys.argv:  # any file with a layersmap block, e.g. a feasibility's ticket map
+        m = re.search(r"```layersmap\n(.*?)```", open(args[0], encoding="utf-8").read(), re.S)
+        probs = check_layersmap(m.group(1)) if m else ["no `layersmap` block found"]
+        for p in probs:
+            print("FAIL", p)
+        print(("PASS" if not probs else "FAIL") + f" map in {os.path.basename(args[0])}: {len(probs)} problem(s)")
+        sys.exit(1 if probs else 0)
     problems, notes, n = check(args[0], "--render" in sys.argv)
     for p in problems:
         print("FAIL", p)

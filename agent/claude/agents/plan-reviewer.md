@@ -16,7 +16,8 @@ Read the plan path you are given, then check, in this order:
 3. **Claims.** Pick the 3 most important code claims and open the `path:line` (Read/Grep; the repo
    is under /workspaces). Pick 2 doc claims and check they appear in section 11 with a link.
    Report any that do not hold.
-4. **Layers map.** In the `layersmap` block, the focus ticket's `hit` parts are exactly the parts
+4. **Layers and flow map.** Tickets and diagram must agree. In the `layersmap` block, the arrows
+   (`edges`) match how the steps say data moves, the focus ticket's `hit` parts are exactly the parts
    the steps change, `near` are real dependencies, and the other tickets' statuses match Jira.
 5. **Steps.** Each one is a single PR with a verifier. Dependencies are in the right order.
 6. **Risks.** At least one real risk with a proposed answer. Blockers called out in the TL;DR.

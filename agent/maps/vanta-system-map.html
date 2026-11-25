@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!--
+  Vanta system map (v0). Open with:  ws map
+  To update: edit the data lists in the <script> at the bottom
+    P      = the parts: [id, label, layer, flow column, area, kind, path, one-line summary, sources]
+    EDGES  = arrows between parts: [from, to]
+    FLOWS  = the step-by-step traces
+    SRC    = where each fact came from
+  or ask an agent: "update the system map: <what changed>" (file: ~/.agent-setup/maps/vanta-system-map.html).
+  Log each change in maps/CHANGELOG.md.
+-->
+<title>Vanta System Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: header, sticky info bar (the one-line summary), controls, then one of three layouts of the same parts. */
+:root{
+  --bg:#f6f7f9; --paper:#ffffff; --ink:#18202b; --quiet:#5a6474; --line:#dde1e7; --tint:#eef1f5;
+  --hit:#d4502a; --hit-bg:#ffe7dd; --near:#a07a00; --near-bg:#fff3c4; --accent:#2f5bd3;
+  --k-svc:#2f5bd3; --k-pkg:#7a3fc4; --k-data:#2f7d4f; --k-queue:#b0620a; --k-ui:#c2387a; --k-infra:#5a6474; --k-ext:#18202b;
+  --f-display:"Space Grotesk",system-ui,sans-serif; --f-body:"IBM Plex Sans",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12161c; --paper:#1a2029; --ink:#e7ebf1; --quiet:#9aa4b3; --line:#2c3440; --tint:#222a35;
+  --hit:#ff8a62; --hit-bg:#4a2418; --near:#e8c14a; --near-bg:#3d3212; --accent:#86a6ff;
+  --k-svc:#86a6ff; --k-pkg:#c39bff; --k-data:#6cc995; --k-queue:#f0a85a; --k-ui:#f58ab8; --k-infra:#9aa4b3; --k-ext:#e7ebf1; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161c; --paper:#1a2029; --ink:#e7ebf1; --quiet:#9aa4b3; --line:#2c3440; --tint:#222a35;
+  --hit:#ff8a62; --hit-bg:#4a2418; --near:#e8c14a; --near-bg:#3d3212; --accent:#86a6ff;
+  --k-svc:#86a6ff; --k-pkg:#c39bff; --k-data:#6cc995; --k-queue:#f0a85a; --k-ui:#f58ab8; --k-infra:#9aa4b3; --k-ext:#e7ebf1; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:1240px;margin:0 auto;padding-block:26px 72px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.2}
+h1{font-size:30px} h3{font-size:16px}
+p{margin:0;max-width:78ch} .quiet{color:var(--quiet)} a{color:var(--accent)}
+code{font-family:var(--f-mono);font-size:12.5px}
+.eyebrow{font:500 12px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--quiet)}
+header{display:grid;gap:8px}
+/* sticky info bar */
+.info{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 16px;display:grid;gap:4px;box-shadow:0 4px 14px rgba(0,0,0,.06);min-height:92px}
+.info .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.info .sum{font-size:15.5px}
+.info .meta{font-size:13px;color:var(--quiet);display:flex;flex-wrap:wrap;gap:4px 14px}
+.kchip{font:500 11px var(--f-mono);letter-spacing:.05em;text-transform:uppercase;border-radius:99px;padding:1px 9px;border:1.5px solid currentColor}
+.link{font:inherit;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+/* controls */
+.controls{display:grid;gap:10px}
+.rowc{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.lbl{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--quiet);margin-right:4px}
+.btn{font:500 13px var(--f-body);color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:5px 11px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent)}
+.btn:disabled{opacity:.45;cursor:default}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:9px;overflow:hidden;background:var(--paper)}
+.seg button{font:500 13.5px var(--f-body);color:var(--ink);background:none;border:0;padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+input[type=search]{font:14px var(--f-body);color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:6px 10px;min-width:220px}
+.kdot{width:9px;height:9px;border-radius:3px;background:currentColor;flex:none}
+.btn:focus-visible,.seg button:focus-visible,.node:focus-visible,input:focus-visible,.link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* parts */
+.node{font:13px var(--f-body);text-align:left;color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-left:4px solid var(--kc,var(--line));border-radius:7px;padding:6px 10px;cursor:pointer;line-height:1.3;min-width:0;position:relative}
+.node small{display:block;font:11.5px var(--f-mono);color:var(--quiet);overflow-wrap:anywhere}
+.node.sel{background:var(--hit-bg);border-color:var(--hit);border-left-color:var(--hit)}
+.node.link1{background:var(--near-bg);border-color:var(--near);border-left-color:var(--near)}
+.node.dim{opacity:.28}
+.node .step{position:absolute;top:-9px;right:-7px;font:600 11px var(--f-mono);background:var(--hit);color:var(--paper);border-radius:99px;padding:0 6px;line-height:17px}
+.node.cur{box-shadow:0 0 0 3px color-mix(in srgb,var(--hit) 35%,transparent)}
+.view{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+/* layout 1: layer cake */
+.cake{display:grid;gap:8px}
+.lrow{display:grid;grid-template-columns:170px minmax(0,1fr);gap:10px}
+.lname{font:500 12px var(--f-mono);color:var(--quiet);padding-top:10px}
+.lname b{display:block;font:600 13px var(--f-display);color:var(--ink)}
+.lparts{display:flex;flex-wrap:wrap;gap:8px;border:1px dashed var(--line);border-radius:8px;padding:10px;background:var(--bg)}
+/* layout 2: flow */
+.flowwrap{overflow-x:auto}
+.flow{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px 30px;min-width:1120px;padding:4px 2px 8px;align-items:center}
+.flow .ch{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--quiet);align-self:end}
+.flow .cell{display:grid;gap:12px;align-content:center;position:relative;z-index:1}
+.flow .node small{display:none}
+.flow svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.flow path{fill:none;stroke:var(--line);stroke-width:1.25} .flow path.on{stroke:var(--hit);stroke-width:2.25} .flow path.soft{stroke:var(--near);stroke-width:2}
+.found{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px}
+.found .lparts{background:none}
+/* layout 3: areas */
+.areas{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.area{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:8px;align-content:start;background:var(--bg)}
+.area h3{font-size:15px} .area p{font-size:13px;color:var(--quiet)}
+.area .lparts{border:0;padding:0;background:none}
+.src{font-size:12.5px;color:var(--quiet)}
+@media (max-width:820px){.lrow{grid-template-columns:1fr}.lname{padding-top:0}.info{min-height:0}}
+@media (prefers-reduced-motion:no-preference){.node,.btn{transition:background .15s,border-color .15s,opacity .15s}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+<header>
+  <span class="eyebrow">v0 · Nov 25, 2026 · built from Guru and design docs, not yet checked against the code</span>
+  <h1>Vanta system map</h1>
+  <p class="quiet">Every major part of Vanta's codebase (obsidian) in one picture. Click a part for a one-line summary. Pick a flow to watch data move through the parts step by step. The three layouts show the same parts: choose the one you'd want as the running map.</p>
+</header>
+
+<div class="info" id="info" aria-live="polite"></div>
+
+<div class="controls">
+  <div class="rowc">
+    <span class="lbl">Layout</span>
+    <div class="seg" role="group" aria-label="Layout" id="layouts">
+      <button type="button" data-v="cake" aria-pressed="true">1 · Layer cake</button>
+      <button type="button" data-v="flow" aria-pressed="false">2 · Flow map</button>
+      <button type="button" data-v="areas" aria-pressed="false">3 · By area of work</button>
+    </div>
+    <input type="search" id="q" placeholder="Find a part: fetcher, kafka, test…" aria-label="Find a part">
+  </div>
+  <div class="rowc" id="kinds" role="group" aria-label="Kind of part"><span class="lbl">Kind</span></div>
+  <div class="rowc" id="flows" role="group" aria-label="Trace a flow"><span class="lbl">Trace a flow</span></div>
+  <div class="rowc" id="stepper" hidden>
+    <button type="button" class="btn" id="prev">← Back</button>
+    <button type="button" class="btn" id="next">Next →</button>
+    <button type="button" class="btn" id="stop">Stop tracing</button>
+  </div>
+</div>
+
+<div class="view" id="v-cake"><div class="cake" id="cake"></div></div>
+<div class="view" id="v-flow" hidden>
+  <div class="flowwrap"><div class="flow" id="flow"></div></div>
+  <div class="found"><span class="lbl">Shared foundations (not part of the data flow)</span><div class="lparts" id="found"></div></div>
+</div>
+<div class="view" id="v-areas" hidden><div class="areas" id="areas"></div></div>
+
+<p class="src" id="sources"></p>
+<p class="src">For domain-level ownership and dependencies, Project Dominion keeps a Domain DAG viewer at go/dagviewer. This map is coarser: services, pipelines and stores.</p>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ================= data: the part an agent keeps up to date ================= */
+const SRC = {
+  G:["Vanta Architecture (Guru; flagged partly out of date)","https://app.getguru.com/card/irpd9eyT/Vanta-Architecture"],
+  C:["Code Structure (Guru)","https://app.getguru.com/card/TR4nAL8c/Code-Structure"],
+  N:["Automation North Star Architecture FY27","https://docs.google.com/document/d/140-l2Q9OHVqJavim0N3d88_zV6rDLnJrLjY8Qd90R1c"],
+  S:["Schemas in V2","https://docs.google.com/document/d/1HbzgXCwq1U9HLA2FrVj4NOst3dBYfcCHGPmBIKv_dos"],
+  O:["On-prem K8s evidence exploration (code-cited)","https://docs.google.com/document/d/1YTE61HlnMcS7j27o1iTlBMj_fbS-Bb43aPRSvObQ_Ec"],
+  D:["Device42 feasibility and spec","https://docs.google.com/document/d/1heeoTOFKVUnV9CHppGtNOpxZdgD0RG283fKI8ZJ4fmo"],
+  M:["Demo Domains Foundations spec","https://docs.google.com/document/d/1gp18uS9dDZ5xlmYVuCQmtNg5yZZBHUhRdRJ-EBd-ZQ8"],
+  H:["How to Mock an Integration (Guru)","https://app.getguru.com/card/i8EB484T/How-to-Mock-an-Integration"],
+  K:["Kafka Onboarding Guide (Guru)","https://app.getguru.com/card/T5MBAgnc/Kafka-Onboarding-Guide"],
+  I:["Dominion initiative (INIT-30)","https://vanta.atlassian.net/browse/INIT-30"],
+  X:["Authoring Experience domain doc","https://docs.google.com/document/d/1_dIhllw4KW1uvb_Xi9FZCFjCUKJyMld-qeRCNs6t39Q"],
+  T:["100 Tests Program Plan","https://docs.google.com/document/d/1fpk2J6cgiVR-oo9HXzyLFdjNS_hPjiAdi9-CQw1Sy2Q"],
+  B:["Buildkite Overview (Guru)","https://app.getguru.com/card/TAL5a57c/Buildkite-Overview"],
+  U:["Turborepo at Vanta (Guru)","https://app.getguru.com/card/ckqGMBki/Turborepo-at-Vanta"],
+  L:["A day in the life of a line of code (Guru)","https://app.getguru.com/card/iMgaeGAT/A-day-in-the-life-of-a-line-of-code"],
+};
+const KINDS = {svc:"Service", pkg:"Package or library", data:"Data store", queue:"Queue or stream", ui:"Customer surface", infra:"Infra and tooling", ext:"Outside Vanta"};
+const LAYER = [
+  ["ext","0 · Outside Vanta","What Vanta connects to"],
+  ["surf","1 · Customer surfaces","What customers and auditors touch"],
+  ["api","2 · API and auth","The front door"],
+  ["logic","3 · Product logic","Business concepts and shared code"],
+  ["ingest","4 · Integrations and ingestion","Getting customer data in"],
+  ["eval","5 · Evaluation and evidence","Turning data into test results"],
+  ["jobs","6 · Notifications and jobs","Background work"],
+  ["data","7 · Data","Where things are stored and queued"],
+  ["infra","8 · Infra and delivery","How it's built and run"],
+];
+const AREA = [
+  ["integ","Integrations and ingestion","Building or fixing a connector, fetcher or data pipeline."],
+  ["tests","Tests and evidence","Vanta tests, what triggers them, and audit evidence."],
+  ["device","Devices and agents","Laptop agent data and the AI agent."],
+  ["product","Product UI and API","What customers click, and what serves it."],
+  ["notif","Notifications and jobs","Emails, recurring digests, background tasks."],
+  ["store","Data stores and queues","Where data lives and how services signal each other."],
+  ["plat","Platform and delivery","Shared code, flags, build, deploy, dev environments."],
+];
+// [id, label, layer, flow column (0-6, or -1 = foundations), area, kind, path, one-line summary, sources]
+const P = [
+  ["vendors","Vendor APIs","ext",0,"integ","ext","AWS, Okta, Device42…","Systems a customer connects to Vanta; fetchers pull data from them.","G"],
+  ["devagent","Device agent (osquery)","surf",0,"device","ui","on employee laptops","Runs on employee laptops and reports device state to osquery-server.","G"],
+  ["webclient","Web app","surf",0,"product","ui","apps/web-client","The React app customers use; its static bundle is served from Cloudflare.","G"],
+  ["trust","Trust Center","surf",0,"product","ui","Trust Reports","Public trust pages; a Cloudflare Worker handles their custom domains.","G"],
+  ["pubapi","Public REST API","surf",0,"product","ui","","REST API for customers, being moved behind Frontdoors for authorization.","I"],
+  ["aiagent","Vanta Agent (AI)","surf",0,"device","ui","","AI agent that reads and acts in the product through domain contracts.","I"],
+  ["qauto","Questionnaire extension","surf",-1,"product","ui","apps/qauto-browser-extension","Browser extension front end for questionnaire automation.","C"],
+
+  ["web","web (GraphQL monolith)","api",1,"product","svc","apps/web","Serves every client over GraphQL and handles user auth; anything without its own service lives here.","G"],
+  ["frontdoor","Frontdoors","api",1,"product","svc","Project Deadbolt","Shared authorization enforcement for GraphQL, REST and Vanta Agent.","I"],
+  ["authsvc","auth-service","api",1,"integ","svc","","Handles the OAuth callbacks started when a customer links an integration.","G"],
+  ["apisvc","api-service","api",1,"integ","svc","","Can decrypt customer credentials; makes one-off scoped vendor calls, such as during linking.","G"],
+  ["osqserver","osquery-server","api",1,"device","svc","","Enrolls laptops, sends them queries and forwards their results over SQS.","G"],
+
+  ["domains","Domain packages","logic",-1,"plat","pkg","packages/*","Libraries shared by two or more apps, one per business concept; Project Dominion is defining their boundaries.","C,I"],
+  ["servercommon","server-common","logic",-1,"plat","pkg","packages/server-common","Older shared library named for where it's used; a wide waist in the dependency graph, so avoid adding to it.","C,M"],
+  ["creds","Credentials and linking","logic",-1,"integ","pkg","apps/web/src/credentials","Stores integration credentials and validates them when a customer connects.","O"],
+  ["inventory","Inventory","logic",-1,"product","pkg","packages/client-inventory","The assets customers see: computers, compute instances and custom items.","X,D"],
+  ["vulnsvc","Vulnerabilities service","logic",5,"tests","pkg","packages/vulnerabilities-service","Finding queries, grouping and suppression; its post-fetchers turn fetched resources into vulnerable assets.","X,D"],
+  ["testdefs","Test definitions","logic",-1,"tests","pkg","","Vanta tests: checks over fetched resources and customer-entered data; a v2 definition format is in progress.","T"],
+  ["flags","Feature flags (Statsig)","logic",-1,"plat","svc","","Turns features and v2 fetch modes on per customer domain.","O"],
+
+  ["sched","task-scheduler","ingest",1,"integ","svc","","Wakes every minute and queues resource fetches, spread across the hour; also re-queues stale tests.","G"],
+  ["rfv1","resource-fetcher (v1)","ingest",2,"integ","svc","apps/resource-fetcher","Pulls data from vendor APIs into Mongo, then signals that tests should re-run.","G"],
+  ["cdc","Fetcher v2 (CDC service)","ingest",2,"integ","svc","apps/cloud-data-capture-service","Runs v2 fetch handlers and plugins and sends what they return into the v2 pipeline.","O,S"],
+  ["intbuilder","Integration Builder","ingest",2,"integ","pkg","packages/integrations/<vendor>","New integrations as a JSON manifest plus TypeScript handlers; supplies the connect form, schedule and retries.","D"],
+  ["plugins","CDC plugins","ingest",2,"integ","pkg","packages/cloud-data-capture-plugin-*","Per-vendor v2 plugins for migrated first-party integrations such as AWS, Okta and Wiz.","O"],
+  ["mocks","Mock data","ingest",2,"integ","pkg","packages/mock-data-source","Generated fake integration data that demo domains fetch in place of real vendor calls.","M,H"],
+  ["osqwriter","osquery-writer","ingest",2,"device","svc","","Applies laptop result diffs from SQS and stores each device's current state in Mongo.","G"],
+  ["edge","Edge API","ingest",3,"integ","svc","packages/cloud-data-capture","Validates incoming objects against their schema and writes them to Kafka.","N"],
+  ["schema","Schema registry","ingest",3,"integ","svc","","Holds data type definitions and applies them to the v2 store at runtime.","N,S"],
+  ["conv","Resource converter sink","ingest",3,"integ","pkg","cloud-data-capture-sink-vanta-resource-converter","Rebuilds v1 resources in Mongo from v2 data so existing product features keep working.","O,S"],
+
+  ["oplog","oplog-watcher","eval",5,"tests","svc","","Watches Mongo for changes to customer-entered data, like policies, and tells test-runner.","G"],
+  ["postfetch","post-fetch-consumer","eval",5,"tests","svc","","Consumes fetch-ended events from Kafka and kicks off tests and post-fetch work.","O,K"],
+  ["testrunner","test-runner","eval",5,"tests","svc","","Runs Vanta tests against the current data and stores the results.","G"],
+  ["queryapi","Query API","eval",5,"tests","svc","","Reads pipeline data for other teams so they don't reach into storage; types are dynamic.","N"],
+  ["evidence","Evidence APIs","eval",5,"tests","svc","","Surface audit evidence built from documents, policies and test runs.","N"],
+
+  ["notifsched","notification-scheduler","jobs",6,"notif","svc","","Checks who has unsubscribed, then queues each notification per channel.","G"],
+  ["emailexec","email-job-executor","jobs",6,"notif","svc","","Sends each queued email through SES.","G"],
+  ["recurring","recurring-notifier","jobs",6,"notif","svc","scheduler + executor","Builds scheduled emails for each customer domain and queues them to send.","G"],
+  ["lambdas","Lambdas","jobs",-1,"notif","svc","lambdas/","Small functions such as customer-lifecycle-manager, which provisions domains, and domain-migrator.","C,H"],
+  ["migrations","mongo-migrations","jobs",-1,"notif","svc","Batch task","Batch task that migrates Mongo data.","C"],
+  ["pdfgen","pdf-generator","jobs",6,"notif","svc","","Makes a PDF for each policy and document.","H"],
+
+  ["mongo","MongoDB","data",4,"store","data","","Main store: v1 resources, test results and everything customers enter.","G"],
+  ["v2store","v2 store (Postgres)","data",4,"store","data","","Tables for v2 data, derived from schemas at startup with no migrations.","O"],
+  ["kafka","Kafka (Confluent)","data",3,"store","queue","","Event topics such as fetch-ended; managed through Terraform.","K"],
+  ["sqs","SQS queues","data",3,"store","queue","","Job queues between services: fetches, test triggers, notifications, laptop results.","G"],
+  ["s3","S3","data",4,"store","data","","Large payloads and long-lived static assets such as training videos.","G"],
+
+  ["ecs","ECS Fargate","infra",-1,"plat","infra","","Runs each service as a Docker image.","G"],
+  ["tf","Terraform","infra",-1,"plat","infra","infra/","Defines the infrastructure; CI applies the changes.","G"],
+  ["cf","Cloudflare","infra",-1,"plat","infra","Pages, CDN, Workers","Serves the web bundle and runs the Trust Center domain worker.","G"],
+  ["ci","CI (Buildkite, GitHub)","infra",-1,"plat","infra","","Builds, tests and deploys; pipelines are kept as code.","B"],
+  ["turbo","Turborepo","infra",-1,"plat","infra","turbo generate-types","Task runner for the monorepo; generates the GraphQL and resource types.","U"],
+  ["ona","Ona dev environments","infra",-1,"plat","infra","","Cloud dev boxes where the services run in Docker.","L"],
+];
+const EDGES = [
+  ["webclient","web"],["pubapi","frontdoor"],["aiagent","frontdoor"],["frontdoor","web"],["devagent","osqserver"],["osqserver","sqs"],["sqs","osqwriter"],["osqwriter","mongo"],
+  ["web","mongo"],["web","authsvc"],["apisvc","vendors"],
+  ["sched","sqs"],["sqs","rfv1"],["vendors","rfv1"],["rfv1","mongo"],["rfv1","sqs"],["sqs","testrunner"],
+  ["sched","cdc"],["vendors","cdc"],["intbuilder","cdc"],["plugins","cdc"],["mocks","cdc"],["cdc","edge"],["schema","edge"],["edge","kafka"],["kafka","v2store"],["cdc","conv"],["conv","mongo"],["conv","kafka"],["kafka","postfetch"],["postfetch","testrunner"],["postfetch","vulnsvc"],
+  ["mongo","oplog"],["oplog","sqs"],["testrunner","mongo"],["v2store","queryapi"],["mongo","evidence"],
+  ["recurring","notifsched"],["notifsched","emailexec"],
+];
+const FLOWS = [
+  {n:"A customer adds an S3 bucket (v1 fetch)", src:"G", steps:[
+    ["sched","The scheduler queues an AWS S3 fetch for the customer."],["sqs","The fetch job waits on a queue."],["rfv1","resource-fetcher picks up the job."],["vendors","It calls the AWS S3 API."],["mongo","It stores the results in Mongo."],["sqs","It queues a message: an S3 fetch just finished."],["testrunner","test-runner re-runs every test that depends on S3."],["mongo","The test results are stored."]]},
+  {n:"A customer changes a policy", src:"G", steps:[
+    ["webclient","The customer clicks a button on the policies page."],["web","web serves the GraphQL request."],["mongo","The policy document is updated."],["oplog","oplog-watcher notices the change."],["sqs","It queues a message: a policy changed."],["testrunner","test-runner re-runs tests that depend on that policy."],["mongo","The test results are stored."]]},
+  {n:"A new laptop enrolls", src:"G", steps:[
+    ["devagent","The agent on the laptop calls enroll and gets a key."],["osqserver","osquery-server saves the device and sends it queries to run."],["sqs","Results go onto a queue so the server never backs up."],["osqwriter","osquery-writer applies the changes since the last check."],["mongo","The device's current state is stored."]]},
+  {n:"A v2 fetch (Integration Builder), simplified", src:"O", steps:[
+    ["sched","A fetch is scheduled for the customer's integration."],["cdc","The CDC service runs the integration's fetch handler."],["intbuilder","The handler is the integration's own code: manifest plus handlers."],["vendors","It calls the vendor's API, one page at a time."],["edge","Rows are validated against their schema."],["kafka","Valid rows are written to Kafka."],["v2store","The pipeline stores them in the v2 store."],["conv","The converter sink rebuilds v1 resources from them."],["mongo","Those resources are saved in Mongo for the existing product."],["kafka","A fetch-ended event is emitted."],["postfetch","post-fetch-consumer picks it up."],["testrunner","Tests that depend on the resource re-run."]]},
+];
+
+/* ================= build ================= */
+const PART = {}; P.forEach(([id,label,layer,col,area,kind,path,sum,src]) => PART[id] = {id,label,layer,col,area,kind,path,sum,src:src.split(",")});
+const els = {}; // id -> [elements in each layout]
+function mkNode(id, host){
+  const p = PART[id], b = document.createElement("button"); b.type = "button"; b.className = "node"; b.style.setProperty("--kc", `var(--k-${p.kind})`);
+  b.innerHTML = `${esc(p.label)}${p.path ? `<small>${esc(p.path)}</small>` : ""}`; b.dataset.id = id;
+  b.addEventListener("click", () => select(id)); (els[id] = els[id] || []).push(b); host.appendChild(b); return b;
+}
+LAYER.forEach(([key, name, hint]) => {
+  const row = document.createElement("div"); row.className = "lrow";
+  row.innerHTML = `<div class="lname"><b>${esc(name)}</b>${esc(hint)}</div><div class="lparts"></div>`;
+  P.filter(p => p[2] === key).forEach(p => mkNode(p[0], row.lastChild)); $("cake").appendChild(row);
+});
+const COLS = ["Sources","Front door","Fetch","Pipeline","Stores","Evaluate","Send"];
+COLS.forEach(c => $("flow").insertAdjacentHTML("beforeend", `<div class="ch">${c}</div>`));
+const flowEl = {};
+COLS.forEach((c, i) => { const cell = document.createElement("div"); cell.className = "cell"; P.filter(p => p[3] === i).forEach(p => flowEl[p[0]] = mkNode(p[0], cell)); $("flow").appendChild(cell); });
+P.filter(p => p[3] === -1).forEach(p => mkNode(p[0], $("found")));
+AREA.forEach(([key, name, hint]) => {
+  const a = document.createElement("div"); a.className = "area";
+  a.innerHTML = `<h3>${esc(name)}</h3><p>${esc(hint)}</p><div class="lparts"></div>`;
+  P.filter(p => p[4] === key).forEach(p => mkNode(p[0], a.lastChild)); $("areas").appendChild(a);
+});
+$("sources").innerHTML = "Sources: " + Object.values(SRC).map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener">${esc(n)}</a>`).join(" · ");
+
+/* ================= state ================= */
+const S = {sel:null, flow:null, step:0, q:"", kind:null, view:"cake"};
+const neighbours = id => { const out = new Set(), inn = new Set(); EDGES.forEach(([a, b]) => { if (a === id) out.add(b); if (b === id) inn.add(a); }); return {out:[...out], inn:[...inn]}; };
+const partLink = id => `<button type="button" class="link" data-go="${id}">${esc(PART[id].label)}</button>`;
+
+Object.entries(KINDS).forEach(([k, name]) => {
+  const b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.setAttribute("aria-pressed", "false"); b.dataset.k = k;
+  b.innerHTML = `<span class="kdot" style="color:var(--k-${k})"></span>${name} <span class="quiet">${P.filter(p => p[5] === k).length}</span>`;
+  b.addEventListener("click", () => { S.kind = S.kind === k ? null : k; render(); }); $("kinds").appendChild(b);
+});
+FLOWS.forEach((f, i) => {
+  const b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = f.n; b.setAttribute("aria-pressed", "false");
+  b.addEventListener("click", () => { S.flow = S.flow === i ? null : i; S.step = 0; S.sel = null; render(); }); $("flows").appendChild(b);
+});
+$("prev").addEventListener("click", () => { S.step--; render(); });
+$("next").addEventListener("click", () => { S.step++; render(); });
+$("stop").addEventListener("click", () => { S.flow = null; render(); });
+$("q").addEventListener("input", ev => { S.q = ev.target.value.trim().toLowerCase(); render(); });
+$("layouts").addEventListener("click", ev => { const b = ev.target.closest("button"); if (!b) return; S.view = b.dataset.v; render(); });
+$("info").addEventListener("click", ev => { const b = ev.target.closest("[data-go]"); if (b) select(b.dataset.go); });
+function select(id){ S.sel = id; if (S.flow !== null) { const i = FLOWS[S.flow].steps.findIndex(s => s[0] === id); if (i >= 0) S.step = i; else S.flow = null; } render(); }
+
+function render(){
+  // layout
+  ["cake","flow","areas"].forEach(v => $("v-" + v).hidden = v !== S.view);
+  [...$("layouts").children].forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === S.view)));
+  [...$("kinds").querySelectorAll(".btn")].forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === S.kind)));
+  [...$("flows").querySelectorAll(".btn")].forEach((b, i) => b.setAttribute("aria-pressed", String(i === S.flow)));
+  const flow = S.flow !== null ? FLOWS[S.flow] : null;
+  $("stepper").hidden = !flow;
+  if (flow) { S.step = Math.max(0, Math.min(flow.steps.length - 1, S.step)); $("prev").disabled = S.step === 0; $("next").disabled = S.step === flow.steps.length - 1; }
+  const cur = flow ? flow.steps[S.step][0] : S.sel;
+  const nb = cur && !flow ? neighbours(cur) : {out:[], inn:[]};
+  const match = id => { const p = PART[id]; return (!S.kind || p.kind === S.kind) && (!S.q || (p.label + " " + p.path + " " + p.sum).toLowerCase().includes(S.q)); };
+  const inFlow = flow ? new Set(flow.steps.map(s => s[0])) : null;
+  Object.entries(els).forEach(([id, list]) => list.forEach(el => {
+    el.querySelectorAll(".step").forEach(s => s.remove());
+    el.classList.toggle("sel", id === cur);
+    el.classList.toggle("cur", !!flow && id === cur);
+    el.classList.toggle("link1", id !== cur && (flow ? inFlow.has(id) : nb.out.includes(id) || nb.inn.includes(id)));
+    el.classList.toggle("dim", !match(id) || (!!flow && !inFlow.has(id)));
+    if (flow) { const nums = flow.steps.map((s, i) => s[0] === id ? i + 1 : 0).filter(Boolean); if (nums.length) el.insertAdjacentHTML("beforeend", `<span class="step">${nums.join(", ")}</span>`); }
+  }));
+  // info bar
+  if (flow) {
+    const [id, text] = flow.steps[S.step], p = PART[id];
+    $("info").innerHTML = `<div class="top"><h3>Step ${S.step + 1} of ${flow.steps.length} · ${esc(p.label)}</h3><span class="kchip" style="color:var(--k-${p.kind})">${KINDS[p.kind]}</span></div>
+      <div class="sum">${esc(text)}</div><div class="meta"><span>Flow: ${esc(flow.n)}</span><span>What this part is: ${esc(p.sum)}</span><span>Source: <a href="${SRC[flow.src][1]}" target="_blank" rel="noopener">${esc(SRC[flow.src][0])}</a></span></div>`;
+  } else if (cur) {
+    const p = PART[cur];
+    $("info").innerHTML = `<div class="top"><h3>${esc(p.label)}</h3><span class="kchip" style="color:var(--k-${p.kind})">${KINDS[p.kind]}</span>${p.path ? `<code>${esc(p.path)}</code>` : ""}</div>
+      <div class="sum">${esc(p.sum)}</div>
+      <div class="meta">${nb.inn.length ? `<span>Gets from: ${nb.inn.map(partLink).join(", ")}</span>` : ""}${nb.out.length ? `<span>Sends to: ${nb.out.map(partLink).join(", ")}</span>` : ""}<span>Source: ${p.src.map(s => `<a href="${SRC[s][1]}" target="_blank" rel="noopener">${esc(SRC[s][0])}</a>`).join(", ")}</span></div>`;
+  } else {
+    const n = Object.keys(PART).filter(match).length;
+    $("info").innerHTML = `<div class="top"><h3>${P.length} parts in ${LAYER.length} layers</h3></div><div class="sum">Click any part for a one-line summary, or pick a flow to trace.</div><div class="meta"><span>${S.q || S.kind ? `${n} match the filter` : "Colour bar on each part = its kind"}</span></div>`;
+  }
+  drawEdges(flow, cur);
+}
+
+/* ================= arrows in the flow layout ================= */
+const NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg"); svg.setAttribute("aria-hidden", "true"); $("flow").appendChild(svg);
+function drawEdges(flow, cur){
+  if (S.view !== "flow") return;
+  const host = $("flow"), R = host.getBoundingClientRect();
+  let list;
+  if (flow) { list = []; for (let i = 0; i < flow.steps.length - 1; i++) list.push([flow.steps[i][0], flow.steps[i + 1][0], i < S.step ? "on" : "soft"]); }
+  else list = EDGES.map(([a, b]) => [a, b, cur && (a === cur || b === cur) ? "on" : ""]);
+  let h = ["", "on", "soft"].map(k => `<marker id="m-${k || "base"}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(${k === "on" ? "--hit" : k === "soft" ? "--near" : "--line"});stroke:none"/></marker>`).join("");
+  list.filter(([a, b]) => flowEl[a] && flowEl[b]).sort((x, y) => (x[2] ? 1 : 0) - (y[2] ? 1 : 0)).forEach(([a, b, k]) => {
+    const A = flowEl[a].getBoundingClientRect(), B = flowEl[b].getBoundingClientRect(); let d;
+    if (Math.abs(A.left - B.left) < 4) { const down = A.top < B.top, x = A.left - R.left + A.width * (down ? .35 : .65); d = `M${x} ${(down ? A.bottom : A.top) - R.top}L${x} ${(down ? B.top : B.bottom) - R.top}`; }
+    else { const ltr = A.left < B.left, x1 = (ltr ? A.right : A.left) - R.left, y1 = A.top - R.top + A.height / 2, x2 = (ltr ? B.left : B.right) - R.left, y2 = B.top - R.top + B.height / 2, mx = (x1 + x2) / 2; d = `M${x1} ${y1}C${mx} ${y1},${mx} ${y2},${x2} ${y2}`; }
+    h += `<path d="${d}" class="${k}" marker-end="url(#m-${k || "base"})"/>`;
+  });
+  svg.innerHTML = h;
+}
+window.addEventListener("resize", () => render());
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => render());
+select("rfv1");
+</script>
+</body>
+</html>

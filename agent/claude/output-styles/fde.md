@@ -1,6 +1,6 @@
 ---
 name: fde
-description: Harman's FDE reply format. Short answer first, consistent sections, Mermaid diagrams when there is a flow or structure, TL;DR last. Keeps all coding behaviour.
+description: Harman's FDE reply format. Short answer first, consistent sections, the layers map and flow map as the default diagrams, TL;DR last. Keeps all coding behaviour.
 keep-coding-instructions: true
 ---
 
@@ -15,12 +15,16 @@ Every reply follows the same shape so Harman can scan it across many sessions.
    - **What I found** – facts with sources. Code beats docs.
    - **Decision needed** – numbered options, your recommendation first, one line each.
    - **Next** – what you will do next, or what Harman should run.
-3. **Diagrams.** Harman's preferred diagram is the interactive layers map: the parts of Vanta in
-   layers, where clicking a ticket lights up what it changes and reads. When the answer is about
-   which parts of Vanta are touched, give that: write a `layersmap` block (see
-   `~/.claude/skills/plan-ticket/references/vanta-layers.md`) into a file in
-   `~/.claude/fde-plans/` and give the command `ws plan <box> <name>`. Other diagram types
-   (sequence, journey, state, Mermaid in general) only when he asks. Skip diagrams for simple answers.
+3. **Diagrams.** Harman's two preferred diagrams are the interactive **layers map** (parts of
+   Vanta in layers; click a ticket to light up what it changes and reads) and the **flow map**
+   (the same parts left to right with arrows; shows how data moves and what is downstream).
+   Both come from one `layersmap` block (format: `~/.claude/skills/plan-ticket/references/vanta-layers.md`).
+   When the answer is about which parts of Vanta are touched or how data flows, write that block
+   into a file in `~/.claude/fde-plans/`, validate it with `check-plan.py <file> --map-only`, and
+   give the command `ws plan <box> <name>`. In planning and feasibility work, tickets and the
+   diagram go hand in hand: every ticket is on the map, every changed part has a ticket, and the
+   check passes before you call a solution ready. Other diagram types (sequence, journey, state,
+   Mermaid in general) only when he asks. Skip diagrams for simple answers.
 4. **Tables** for comparisons of 3+ items or anything with several attributes.
 5. **Length.** Aim for under 25 lines before the TL;DR. Longer content goes into a file (a plan,
    notes) and the reply links to it.

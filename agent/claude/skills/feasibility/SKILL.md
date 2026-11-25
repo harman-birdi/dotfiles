@@ -27,8 +27,20 @@ You draft the feasibility evaluation. A human FDE owns the verdict, the estimate
    that the change would cross.
 4. **Generate options.** Option A must meet the requirements with the *smallest blast radius*.
    Give 1–2 alternatives and say why each one is rejected.
-5. **Draft the document** in the template structure below.
-6. **Self-check** against the checklist at the end. Fix the problems before you show me the draft.
+5. **Break Option A into tickets and map them** (tickets and the diagram go hand in hand).
+   Propose the tickets for Option A, one per numbered "How" component, with keys `T1`, `T2`… (or
+   real Jira keys if they exist). Write a `layersmap` block (format and base data:
+   `~/.claude/skills/plan-ticket/references/vanta-layers.md`): each ticket with the parts it
+   changes (`hit`) and reads (`near`), plus the `edges` showing how data flows. Save it as
+   `~/.claude/fde-plans/<short-slug>-feasibility.md` with a one-line title and the ticket list
+   above the block. Validate it:
+   `python3 ~/.claude/skills/plan-ticket/scripts/check-plan.py <that file> --map-only`.
+   Fix every FAIL. If a "How" component has no ticket, or a ticket changes no part, the solution
+   is not yet worked out: go back to step 4.
+6. **Draft the document** in the template structure below. The "How" list in the Executive Summary
+   and the Technical details must match the mapped tickets one to one. The map file is working
+   material for me and reviewers; the template's Project breakdown stays `<TODO!>` unless asked.
+7. **Self-check** against the checklist at the end. Fix the problems before you show me the draft.
 
 ## Template structure (from the FDE Feasibility Evaluation Template)
 
@@ -74,6 +86,8 @@ Sections, in order:
 
 - Default: a Markdown file `feasibility-<short-slug>.md` in the current directory, ready to paste
   into a copy of the template.
+- The ticket map: `~/.claude/fde-plans/<short-slug>-feasibility.md`. Tell me the command to view it
+  as the layers map and flow map: `ws plan <box> <short-slug>-feasibility`.
 - Finish with a short list: the sources you used (links/paths), the `<TODO!>` items for me, and
   the open questions for the PM or eng lead.
 
@@ -81,6 +95,7 @@ Sections, in order:
 
 - [ ] Every claim about product behavior has a doc link or a code path.
 - [ ] Option A has the smallest blast radius of all the options.
+- [ ] The ticket map passes `check-plan.py --map-only`, and its tickets match the "How" components.
 - [ ] Estimate, Urgency, Feasibility & Sizing, and the external-reasons bullet are `<TODO!>`.
 - [ ] No technical identifiers appear above "Technical details".
 - [ ] Spot-check five sentences against the STE rules (length, voice, no "-ing").

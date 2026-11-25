@@ -39,7 +39,7 @@ If no: say where the result shows up anyway, e.g. "existing Inventory page, no c
 <One sentence: which layers this touches.>
 
 ```layersmap
-<base JSON from references/vanta-layers.md, plus "focus" and "tickets" (this ticket and its epic)>
+<base JSON from references/vanta-layers.md (parts + edges), plus "focus" and "tickets" (this ticket and its epic)>
 ```
 
 | Part | Change | Where (path) |

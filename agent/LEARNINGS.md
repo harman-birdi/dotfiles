@@ -14,3 +14,5 @@ Review this monthly. Promote anything that would help the team into the `fde` pl
 - 2026-11-25 fde plugin enabled from plugins.txt at user scope (was project scope per checkout); plan-ticket skill, plan-reviewer subagent, fde output style, ws skills / ws plan.
 - 2026-11-25 plan-reviewer caught unverified spec paths in the example plan → plan-ticket now requires opening every cited file or marking it "(from spec, unverified)".
 - 2026-11-25 Diagram preference: the interactive layers map (click a ticket, its parts light up) is the default; other diagram types only on request. Plans carry it as a `layersmap` block; `ws plan` draws it.
+- 2026-11-25 Diagram preference is now two views of one `layersmap` block: layers map + flow map. Tickets and the diagram must agree: check-plan.py fails a plan (or a feasibility ticket map, --map-only) where they do not. Feasibility skill now maps Option A tickets before drafting.
+- 2026-11-25 Saved the Vanta system map in maps/ (`ws map`).

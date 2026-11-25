@@ -22,6 +22,7 @@ bin/enable-plugins.sh            enables plugins.txt at user scope (run by insta
 bin/skills-catalog.py            lists every skill/plugin/subagent (behind `ws skills <box>`)
 bin/plan-html.py                 renders a plan as a page (behind `ws plan <box> [KEY]`)
 examples/FDE-842.md              example plan made with plan-ticket
+maps/vanta-system-map.html       the whole-Vanta system map (`ws map`); maps/CHANGELOG.md logs changes
 templates/PROJECT.md             template the project skill copies
 shell/agents.sh                  oo defaults + `ws` helper
 install.sh                       links everything into ~/.claude (safe to re-run)
@@ -112,6 +113,20 @@ replies with the TL;DR. Read it on your Mac:
 ws plan fde-842 FDE-842      # opens the plan as a page with diagrams (any running box works)
 ws plan fde-842 --list       # all plans
 ```
+
+### Diagrams (my preference)
+Two interactive diagrams, drawn from one `layersmap` block in a plan or feasibility file:
+the **layers map** (what each ticket touches) and the **flow map** (how data moves, what is
+downstream). `ws plan <box> <name>` shows both with a switch. Tickets and the diagram go hand in
+hand: `check-plan.py` fails a plan whose tickets and map disagree. The rule lives in
+`claude/output-styles/fde.md`, so every new box and session follows it.
+
+### The Vanta system map
+```sh
+ws map                       # opens maps/vanta-system-map.html: every layer of Vanta, clickable
+```
+To update it, edit the data lists at the bottom of that file (or ask an agent to), and add a
+line to `maps/CHANGELOG.md`. Published copy: https://claude.ai/artifact/SAEHJBChQ1eMrbhWZtHQPo
 
 ### What skills do I have?
 ```sh

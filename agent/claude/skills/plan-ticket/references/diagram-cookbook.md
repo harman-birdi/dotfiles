@@ -1,13 +1,20 @@
 # Diagram cookbook for plans
 
-## Default: the interactive layers map
+## Default: the layers map and the flow map
 
-Harman's preferred diagram (chosen 2026-11-25). Use it whenever the question is "what does this
-touch" or "where does this ticket land": click a ticket and the parts of Vanta it changes light up
-orange, the parts it reads light up yellow; click a part to list the tickets that touch it.
-Write it as a `layersmap` block (format and base data: `vanta-layers.md`). `ws plan <box> <KEY>`
-draws it. Outside a plan, put the block in `~/.claude/fde-plans/<name>.md` and give the
-`ws plan` command.
+Harman's two preferred diagrams (chosen 2026-11-25), drawn from one `layersmap` block:
+
+- **Layers map**: parts of Vanta stacked in layers. Use for "what does this touch?"
+- **Flow map**: the same parts left to right with arrows. Use for "how does data move?" and
+  "what is downstream of this change?"
+
+Click a ticket: the parts it changes light up orange, the parts it reads yellow. Click a part:
+its tickets are listed and everything downstream lights up. Format and base data:
+`vanta-layers.md`. `ws plan <box> <KEY>` draws both with a switch. Outside a plan (a feasibility,
+a question in chat), put the block in `~/.claude/fde-plans/<name>.md`, validate it with
+`check-plan.py <file> --map-only`, and give the `ws plan` command.
+
+Tickets and the diagram go hand in hand: every ticket is on the map, every changed part has a ticket.
 
 **Everything below is on request only.** Do not add these to a plan unless Harman asks.
 

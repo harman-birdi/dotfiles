@@ -68,7 +68,20 @@ a{color:var(--accent)}.mermaid{background:#fff;border:1px solid var(--line);bord
 :root{--hit:#d4502a;--hit-bg:#ffe1d6;--near:#b08900;--near-bg:#fff4cc;--ok:#2f7d4f}
 @media (prefers-color-scheme:dark){:root{--hit:#ff8a62;--hit-bg:#4a2418;--near:#e8c14a;--near-bg:#3d3212;--ok:#6cc995}}
 .layersmap{border:1px solid var(--line);border-radius:10px;padding:14px;margin:12px 0}
-.lm-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.lm-top{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.lm-bar{display:flex;flex-wrap:wrap;gap:6px}
+.lm-seg{display:inline-flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+.lm-seg button{font:500 13px inherit;font-family:inherit;color:var(--ink);background:var(--paper);border:0;padding:5px 12px;cursor:pointer}
+.lm-seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.layersmap [hidden]{display:none!important}
+.lm-flowwrap{overflow-x:auto}
+.lm-flow{position:relative;display:grid;gap:10px 30px;align-items:center;padding:6px 2px}
+.lm-cell{display:grid;gap:12px;align-content:center;position:relative;z-index:1}
+.lm-fp{background:var(--paper);border-color:var(--line);font-size:12.5px}
+.lm-flow svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:visible}
+.lm-flow path{fill:none;stroke:var(--line);stroke-width:1.25}.lm-flow path.on{stroke:var(--hit);stroke-width:2.25}.lm-flow path.soft{stroke:var(--near);stroke-width:2}
+.lm-flow path.lm-ah{stroke:none;fill:var(--line)}.lm-flow path.lm-ah.on{fill:var(--hit)}.lm-flow path.lm-ah.soft{fill:var(--near)}
+.lm-rest{margin-top:10px;display:grid;gap:6px}.lm-rest span{font:12px ui-monospace,Menlo,monospace;color:var(--quiet)}
 .lm-tk{font:500 13px inherit;font-family:inherit;color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:4px 10px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
 .lm-tk[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--tint)}
 .lm-tk i{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--quiet)}.lm-tk i.done{background:var(--ok);border-color:var(--ok)}.lm-tk i.prog{background:var(--near);border-color:var(--near)}
@@ -81,12 +94,12 @@ a{color:var(--accent)}.mermaid{background:#fff;border:1px solid var(--line);bord
 .lm-part.hit small,.lm-part.near small{color:inherit;opacity:.75}
 .lm-detail{margin-top:12px;border-top:1px solid var(--line);padding-top:10px;font-size:14px}.lm-detail p{margin:4px 0}.lm-detail ul{margin:4px 0;padding-left:18px}
 .lm-st{font-size:12px;border:1px solid var(--line);border-radius:99px;padding:0 8px;color:var(--quiet)}
-.lm-tk:focus-visible,.lm-part:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.lm-tk:focus-visible,.lm-part:focus-visible,.lm-seg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media (max-width:820px){.lm-row{grid-template-columns:1fr}.lm-name{padding-top:0}}.legend{font-size:12px;color:var(--quiet)}.legend b.hit{background:#ffe1d6;border:2px solid #d4502a;padding:0 6px;border-radius:3px;color:#1d1b26}.legend b.near{background:#fff4cc;border:2px solid #b08900;padding:0 6px;border-radius:3px;color:#1d1b26}
 @media (max-width:820px){.wrap{grid-template-columns:1fr}nav{position:static}article{padding:20px 16px}}
 @media print{nav{display:none}.wrap{display:block}article{border:none}}
 </style></head><body><div class="wrap"><nav><div class="meta">__META__</div><div id="toc"></div>
-<p class="legend">In the layers map, click a ticket or a part:<br><b class="hit">changes</b> <b class="near">reads / depends on</b></p></nav>
+<p class="legend">In the map (Layers or Flow), click a ticket or a part:<br><b class="hit">changes</b> <b class="near">reads / depends on</b></p></nav>
 <article id="doc">Loading…</article></div>
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
@@ -98,38 +111,68 @@ function buildLayersMap(host) {
   let d; try { d = JSON.parse(host.textContent); } catch (e) { host.className = ''; host.innerHTML = '<pre></pre>'; host.firstChild.textContent = 'layersmap: invalid JSON (' + e.message + ')'; return; }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const ST = { done: 'Done', prog: 'In progress', back: 'Backlog' };
-  const tickets = d.tickets || [], parts = {};
-  host.innerHTML = '<div class="lm-bar"></div><div class="lm-rows"></div><div class="lm-detail"></div>';
-  const bar = host.children[0], rows = host.children[1], detail = host.children[2];
+  const tickets = d.tickets || [], parts = {}, order = [];
+  const edges = (d.edges || []).filter(e => Array.isArray(e) && e.length > 1);
+  host.innerHTML = '<div class="lm-top"><div class="lm-bar"></div><div class="lm-seg"><button type="button" aria-pressed="true">Layers</button><button type="button" aria-pressed="false">Flow</button></div></div>' +
+    '<div class="lm-rows"></div><div class="lm-flowwrap" hidden><div class="lm-flow"></div><div class="lm-rest" hidden><span>Not in the flow</span><div class="lm-parts"></div></div></div><div class="lm-detail"></div>';
+  const bar = host.querySelector('.lm-bar'), seg = host.querySelector('.lm-seg'), rows = host.querySelector('.lm-rows'), fwrap = host.querySelector('.lm-flowwrap'),
+    flow = host.querySelector('.lm-flow'), rest = host.querySelector('.lm-rest'), detail = host.querySelector('.lm-detail');
+  const mk = (p, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls + (p.new ? ' new' : '');
+    b.innerHTML = esc(p.label) + (p.path && cls === 'lm-part' ? '<small>' + esc(p.path) + '</small>' : ''); if (p.path) b.title = p.path;
+    b.addEventListener('click', () => showPart(p)); parts[p.id].els.push(b); return b; };
+  // layers view
   (d.layers || []).forEach(L => {
     const row = document.createElement('div'); row.className = 'lm-row';
     row.innerHTML = '<div class="lm-name">' + esc(L.name) + '</div><div class="lm-parts"></div>';
-    (L.parts || []).forEach(p => {
-      const b = document.createElement('button'); b.type = 'button'; b.className = 'lm-part' + (p.new ? ' new' : '');
-      b.innerHTML = esc(p.label) + (p.path ? '<small>' + esc(p.path) + '</small>' : '');
-      b.addEventListener('click', () => showPart(p)); parts[p.id] = { el: b, p }; row.lastChild.appendChild(b);
-    });
+    (L.parts || []).forEach(p => { parts[p.id] = { p, els: [] }; order.push(p.id); row.lastChild.appendChild(mk(p, 'lm-part')); });
     rows.appendChild(row);
   });
-  const paint = (hit, near) => Object.keys(parts).forEach(id => { const c = parts[id].el.classList; c.toggle('hit', hit.includes(id)); c.toggle('near', !hit.includes(id) && near.includes(id)); });
+  // flow view: columns = how many arrows deep a part sits (left to right)
+  const depth = {}; edges.forEach(([a, b]) => { if (parts[a] && parts[b]) { depth[a] = depth[a] || 0; depth[b] = depth[b] || 0; } });
+  for (let i = 0; i < order.length; i++) edges.forEach(([a, b]) => { if (a in depth && b in depth && depth[b] < depth[a] + 1 && depth[a] < 9) depth[b] = depth[a] + 1; });
+  const cols = Math.max(0, ...Object.values(depth)) + 1, fel = {};
+  flow.style.gridTemplateColumns = 'repeat(' + cols + ',minmax(0,1fr))'; flow.style.minWidth = Math.max(560, cols * 150) + 'px';
+  for (let c = 0; c < cols; c++) { const cell = document.createElement('div'); cell.className = 'lm-cell';
+    order.filter(id => depth[id] === c).forEach(id => { fel[id] = mk(parts[id].p, 'lm-part lm-fp'); cell.appendChild(fel[id]); }); flow.appendChild(cell); }
+  const loose = order.filter(id => !(id in depth)); rest.hidden = !loose.length; loose.forEach(id => rest.lastChild.appendChild(mk(parts[id].p, 'lm-part')));
+  const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg'); svg.setAttribute('aria-hidden', 'true'); flow.appendChild(svg);
+  let lit = {}; // part id -> 'hit' | 'near'
+  function draw() {
+    if (fwrap.hidden) return; const R = flow.getBoundingClientRect();
+    let h = ['base', 'on', 'soft'].map(k => '<marker id="lmm-' + k + '" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="lm-ah ' + k + '"/></marker>').join('');
+    edges.filter(([a, b]) => fel[a] && fel[b]).map(([a, b]) => [a, b, lit[a] && lit[b] ? (lit[a] === 'hit' || lit[b] === 'hit' ? 'on' : 'soft') : 'base'])
+      .sort((x, y) => (x[2] === 'base' ? 0 : 1) - (y[2] === 'base' ? 0 : 1)).forEach(([a, b, k]) => {
+        const A = fel[a].getBoundingClientRect(), B = fel[b].getBoundingClientRect();
+        const x1 = A.right - R.left, y1 = A.top - R.top + A.height / 2, x2 = B.left - R.left, y2 = B.top - R.top + B.height / 2, mx = (x1 + x2) / 2;
+        h += '<path d="M' + x1 + ' ' + y1 + 'C' + mx + ' ' + y1 + ',' + mx + ' ' + y2 + ',' + x2 + ' ' + y2 + '" class="' + k + '" marker-end="url(#lmm-' + k + ')"/>';
+      });
+    svg.innerHTML = h;
+  }
+  const paint = m => { lit = m; order.forEach(id => parts[id].els.forEach(el => { el.classList.toggle('hit', m[id] === 'hit'); el.classList.toggle('near', m[id] === 'near'); })); draw(); };
   const names = ids => (ids || []).filter(id => parts[id]).map(id => esc(parts[id].p.label)).join(', ') || 'none';
   const press = k => tickets.forEach(t => t._b.setAttribute('aria-pressed', String(t.key === k)));
   function showTicket(t) {
-    press(t.key); paint(t.hit || [], t.near || []);
-    detail.innerHTML = '<b>' + esc(t.key) + ' · ' + esc(t.title) + '</b> <span class="lm-st ' + esc(t.status) + '">' + (ST[t.status] || '') + '</span>' +
+    press(t.key); const m = {}; (t.near || []).forEach(id => m[id] = 'near'); (t.hit || []).forEach(id => m[id] = 'hit'); paint(m);
+    detail.innerHTML = '<b>' + esc(t.key) + ' · ' + esc(t.title) + '</b> <span class="lm-st ' + esc(t.status) + '">' + (ST[t.status] || '') + '</span>' + (t.nocode ? ' <span class="lm-st">no code change</span>' : '') +
       '<p><b>Changes:</b> ' + names(t.hit) + ' · <b>Reads or depends on:</b> ' + names(t.near) + '</p>' +
       ((t.notes || []).length ? '<ul>' + t.notes.map(n => '<li>' + esc(n) + '</li>').join('') + '</ul>' : '');
   }
   function showPart(p) {
-    press(null); paint([p.id], []);
+    press(null); const down = [], seen = new Set([p.id]);
+    (function walk(x) { edges.forEach(([a, b]) => { if (a === x && parts[b] && !seen.has(b)) { seen.add(b); down.push(b); walk(b); } }); })(p.id);
+    const m = { [p.id]: 'hit' }; down.forEach(id => m[id] = 'near'); paint(m);
     const ts = tickets.filter(t => (t.hit || []).includes(p.id) || (t.near || []).includes(p.id));
     detail.innerHTML = '<b>' + esc(p.label) + '</b>' + (p.path ? ' <code>' + esc(p.path) + '</code>' : '') + (p.new ? ' <span class="lm-st">not on the Vanta map yet</span>' : '') +
-      '<p>Touched by: ' + (ts.map(t => esc(t.key) + ' (' + ((t.hit || []).includes(p.id) ? 'changes' : 'reads') + ')').join(', ') || 'no ticket in this plan') + '</p>';
+      '<p><b>Touched by:</b> ' + (ts.map(t => esc(t.key) + ' (' + ((t.hit || []).includes(p.id) ? 'changes' : 'reads') + ')').join(', ') || 'no ticket in this plan') + '</p>' +
+      '<p><b>Downstream:</b> ' + (down.length ? names(down) : 'nothing') + '</p>';
   }
   tickets.forEach(t => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'lm-tk'; b.title = t.title + ' (' + (ST[t.status] || '') + ')';
     b.innerHTML = '<i class="' + esc(t.status) + '"></i>' + esc(t.key); b.addEventListener('click', () => showTicket(t)); t._b = b; bar.appendChild(b);
   });
+  seg.addEventListener('click', ev => { const b = ev.target.closest('button'); if (!b) return; const f = b === seg.children[1];
+    seg.children[0].setAttribute('aria-pressed', String(!f)); seg.children[1].setAttribute('aria-pressed', String(f)); rows.hidden = f; fwrap.hidden = !f; draw(); });
+  window.addEventListener('resize', draw);
   const f = tickets.find(t => t.key === d.focus) || tickets[0]; if (f) showTicket(f);
 }
 const doc = document.getElementById('doc');
