@@ -1,6 +1,6 @@
 ---
 name: plan-ticket
-description: Turn a Jira ticket into a short, readable plan with diagrams. Researches the ticket, its epic, linked docs, Slack, Glean and the code, asks Harman 3-5 questions, then writes PLAN.md (problem, customer today, pain point, solution from the customer's side, UI yes/no, Vanta layers map with affected parts highlighted, flow, PR-sized steps, verifiers) and has a Sonnet reviewer check it. Use when asked to plan, scope, break down or "look into" a ticket or FDE-123 style key.
+description: Turn a Jira ticket into a short, readable plan with diagrams. Researches the ticket, its epic, linked docs, Slack, Glean and the code, asks Harman 3-5 questions, then writes PLAN.md (problem, customer today, pain point, solution from the customer's side, UI yes/no, interactive Vanta layers map showing which parts each ticket touches, how it works, PR-sized steps, verifiers) and has a Sonnet reviewer check it. Use when asked to plan, scope, break down or "look into" a ticket or FDE-123 style key.
 ---
 
 # Plan a ticket
@@ -46,11 +46,11 @@ deadlines, who reviews. Wait for the answers. "Your call" means use your proposa
 
 1. Copy `references/plan-template.md` into `~/.claude/fde-plans/<KEY>.md` and fill every section.
    Keep the headings exactly. Customer sections (2–4) use plain words, no code names.
-2. Diagrams: follow `references/diagram-cookbook.md`. Required:
-   - section 6: the full layers map from `references/vanta-layers.md` with `class … hit` on what
-     changes and `class … near` on what it reads or depends on;
-   - section 7: one sequence or decision diagram of how it works;
-   - section 2 and 4: a before/after customer journey, or section 8: the dependency graph.
+2. Diagrams: Harman's preferred diagram is the **interactive layers map**. Section 6 carries it
+   as a `layersmap` block: the base JSON from `references/vanta-layers.md`, plus this ticket and
+   the other tickets in its epic, each with the parts it changes (`hit`) and reads (`near`).
+   `ws plan` draws it: click a ticket, its parts light up. Do not add other diagrams (sequence,
+   journey, state…) unless Harman asks; `references/diagram-cookbook.md` has them for when he does.
 3. Every code claim ends with `path:line`. Every fact from a doc links to it in section 11.
 4. Sizes: S = 1 PR, M = 2–3 PRs, L = 4+ PRs or needs a design/RFC. Each step in section 8 is one PR
    with its verifier.

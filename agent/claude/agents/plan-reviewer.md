@@ -16,8 +16,8 @@ Read the plan path you are given, then check, in this order:
 3. **Claims.** Pick the 3 most important code claims and open the `path:line` (Read/Grep; the repo
    is under /workspaces). Pick 2 doc claims and check they appear in section 11 with a link.
    Report any that do not hold.
-4. **Diagrams.** The layers map highlights (`hit`) exactly the parts the steps change; the flow
-   diagram matches the steps; nothing in a diagram contradicts the text.
+4. **Layers map.** In the `layersmap` block, the focus ticket's `hit` parts are exactly the parts
+   the steps change, `near` are real dependencies, and the other tickets' statuses match Jira.
 5. **Steps.** Each one is a single PR with a verifier. Dependencies are in the right order.
 6. **Risks.** At least one real risk with a proposed answer. Blockers called out in the TL;DR.
 7. Run `python3 ~/.claude/skills/plan-ticket/scripts/check-plan.py <path>` and include its result.

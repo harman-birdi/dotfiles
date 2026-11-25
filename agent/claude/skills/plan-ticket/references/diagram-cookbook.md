@@ -1,5 +1,18 @@
 # Diagram cookbook for plans
 
+## Default: the interactive layers map
+
+Harman's preferred diagram (chosen 2026-11-25). Use it whenever the question is "what does this
+touch" or "where does this ticket land": click a ticket and the parts of Vanta it changes light up
+orange, the parts it reads light up yellow; click a part to list the tickets that touch it.
+Write it as a `layersmap` block (format and base data: `vanta-layers.md`). `ws plan <box> <KEY>`
+draws it. Outside a plan, put the block in `~/.claude/fde-plans/<name>.md` and give the
+`ws plan` command.
+
+**Everything below is on request only.** Do not add these to a plan unless Harman asks.
+
+## Other diagrams (Mermaid)
+
 Pick the diagram by the question it answers. One diagram per question; never draw something a
 table or a numbered list says just as well. All are Mermaid so they render in `ws plan`, GitHub
 and Claude Docs. Check every diagram with `check-plan.py --render` before you hand the plan over.

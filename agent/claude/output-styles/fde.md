@@ -15,11 +15,12 @@ Every reply follows the same shape so Harman can scan it across many sessions.
    - **What I found** – facts with sources. Code beats docs.
    - **Decision needed** – numbered options, your recommendation first, one line each.
    - **Next** – what you will do next, or what Harman should run.
-3. **Diagrams.** When the answer involves a flow (calls between systems, a sequence of steps that
-   branches), a structure (which parts of Vanta, which files) or dependencies (what blocks what),
-   include one Mermaid diagram instead of describing it in prose. Use the cookbook in
-   `~/.claude/skills/plan-ticket/references/diagram-cookbook.md`. Max ~12 boxes. Skip diagrams for
-   simple answers.
+3. **Diagrams.** Harman's preferred diagram is the interactive layers map: the parts of Vanta in
+   layers, where clicking a ticket lights up what it changes and reads. When the answer is about
+   which parts of Vanta are touched, give that: write a `layersmap` block (see
+   `~/.claude/skills/plan-ticket/references/vanta-layers.md`) into a file in
+   `~/.claude/fde-plans/` and give the command `ws plan <box> <name>`. Other diagram types
+   (sequence, journey, state, Mermaid in general) only when he asks. Skip diagrams for simple answers.
 4. **Tables** for comparisons of 3+ items or anything with several attributes.
 5. **Length.** Aim for under 25 lines before the TL;DR. Longer content goes into a file (a plan,
    notes) and the reply links to it.

@@ -25,25 +25,11 @@ customer's words, not code names. Every claim about code ends with a `path:line`
 ## 2. Customer today
 <What the customer does today, step by step, in their words. Include the workaround.>
 
-```mermaid
-journey
-  title <Customer> today: <task>
-  section <phase>
-    <step>: <1-5 score>: <actor>
-```
-
 ## 3. Pain point
 - <The specific pain, with a number when there is one: hours per week, records missed, deals blocked.>
 
 ## 4. Solution from the customer's side
 <What the customer sees and does after this ships. No code names.>
-
-```mermaid
-journey
-  title <Customer> after: <task>
-  section <phase>
-    <step>: <score>: <actor>
-```
 
 ## 5. UI work
 **<Yes / No>.** <If yes: which screens change and whether a designer is needed (Alpaca components?).
@@ -52,8 +38,8 @@ If no: say where the result shows up anyway, e.g. "existing Inventory page, no c
 ## 6. Where this lands in Vanta
 <One sentence: which layers this touches.>
 
-```mermaid
-<full Vanta layers map from references/vanta-layers.md, with `class … hit` / `class … near` lines>
+```layersmap
+<base JSON from references/vanta-layers.md, plus "focus" and "tickets" (this ticket and its epic)>
 ```
 
 | Part | Change | Where (path) |
@@ -61,22 +47,13 @@ If no: say where the result shows up anyway, e.g. "existing Inventory page, no c
 | <node id> | <what changes> | <path:line> |
 
 ## 7. How it works
-<The flow after the change. Use a sequence diagram for calls between systems, a flowchart for
-decisions. One diagram, the one that answers "what happens when…".>
-
-```mermaid
-sequenceDiagram
-  <…>
-```
+<The flow after the change, as a numbered list: one line per step, who does what. Add a Mermaid
+diagram only if Harman asked for one.>
 
 ## 8. Steps (PR-sized)
 1. **<PR title>** · <files> · verified by <test or check>
 2. …
 
-```mermaid
-flowchart LR
-  <ticket/PR dependency graph: what blocks what>
-```
 
 ## 9. Acceptance criteria and verifiers
 | # | Criterion | Verifier (command or check) |
